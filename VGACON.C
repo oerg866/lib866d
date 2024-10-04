@@ -58,8 +58,10 @@ static void vgacon_advanceCursor(size_t increment) {
      + (vgacon_MEM_CursorPositions[*vgacon_MEM_CurrentPageNumber].x))
 
 static vgacon_BIOSChar _far *vgacon_getCurrentDrawPointer(void) {
-    vgacon_CursorPos pos = VGACON_CURRENT_CURSOR_POSITION;
     vgacon_BIOSChar _far *drawPtr = (vgacon_BIOSChar _far *) &vgacon_MEM_VideoRAM[*vgacon_MEM_CurrentPageOffset];
+    vgacon_CursorPos pos;
+    fflush(stdout);
+    pos = VGACON_CURRENT_CURSOR_POSITION;
     drawPtr += pos.y * *vgacon_MEM_ColumnsOnScreen;
     drawPtr += pos.x;
     return drawPtr;
