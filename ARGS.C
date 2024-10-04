@@ -85,14 +85,6 @@ static const args_ParseErrorLookup args_parseErrorLookupTable[] = {
 #define GET_ARG_ARRAYSIZE(type) (type & 0x00FF)
 #define ARG_HAS_PARAM(type) (type != ARG_FLAG && type != ARG_USAGE)
 
-/* quirks over quirks ... */
-#if !defined(snprintf) && defined(_snprintf)
-# define snprintf _snprintf
-#elif !defined(__WATCOMC__)
-# define snprintf util_snprintf
-#endif
-
-
 void args_printAppInfo(const args_arg *argList, size_t argListSize) {
     size_t idx;
     for (idx = 0; idx < argListSize; idx++) {
@@ -158,8 +150,13 @@ void args_printUsage(const args_arg *argList, size_t argListSize) {
                 /* current entry is an actual parameter type we need to print */
                 args_printLineSeparator();
 
+                /*  Should use snprintf here, but really old compilers don't have it and
+                    null assignments happen on those when you use sprintf like this to
+                    figure out the required size, making it essentially impossible to
+                    implement a snprintf for those compilers. */
+
                 if (ARG_HAS_PARAM(GET_ARG_TYPE(argList[idx].type))) {
-                    snprintf(tmp, sizeof(tmp), "/%s:<%s>",
+                    sprintf(tmp, "/%s:<%s>",
                         argList[idx].prefix,
                         argList[idx].paramNames ? argList[idx].paramNames : "...");
 
@@ -168,7 +165,7 @@ void args_printUsage(const args_arg *argList, size_t argListSize) {
                         argList[idx].description);
 
                 } else {
-                    snprintf(tmp, sizeof(tmp), "/%s", argList[idx].prefix);
+                    sprintf(tmp, "/%s", argList[idx].prefix);
                     printf("%*s %s\n",
                         25, tmp,
                         argList[idx].description);
@@ -306,11 +303,11 @@ static bool isThisArg(const args_arg *arg, const char *str) {
     /*  Flags and Usage are not expected to have a parameter so they must end with null terminator
         Everything else needs a colon. */
     switch (GET_ARG_TYPE(arg->type)) {
-        case ARG_HEADER:
-        case ARG_BLANK:
+        case ARG_HEADER:    /* fallthrough */
+        case ARG_BLANK:     /* fallthrough */
         case ARG_EXPLAIN:
             return false;
-        case ARG_FLAG:
+        case ARG_FLAG:      /* fallthrough */
         case ARG_USAGE:
             if (str[prefixLen + 1] != '\0') return false;
             break;
