@@ -28,6 +28,8 @@ void util_stringReplaceChar(char *str, char oldChar, char newChar);
 
 /* strncasecmp implementation for C89 */
 int util_strncasecmp(const char *str1, const char *str2, size_t strLen);
+/* snprintf implementation for C89 (kludgey and slow, be warned) */
+int util_snprintf(char *out, size_t size, const char *fmt, ...);
 
 /*  Prints text and wraps around an ASCII logo on the left of the screen. This can only be done once per session.
     After the logo has been fully printed, this becomes a simple printf.

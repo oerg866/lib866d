@@ -85,9 +85,11 @@ static const args_ParseErrorLookup args_parseErrorLookupTable[] = {
 #define GET_ARG_ARRAYSIZE(type) (type & 0x00FF)
 #define ARG_HAS_PARAM(type) (type != ARG_FLAG && type != ARG_USAGE)
 
-/* Microsoft C quirk ... */
-#ifndef snprintf
-#define snprintf _snprintf
+/* quirks over quirks ... */
+#if !defined(snprintf) && defined(_snprintf)
+# define snprintf _snprintf
+#elif !defined(__WATCOMC__)
+# define snprintf util_snprintf
 #endif
 
 
@@ -166,7 +168,7 @@ void args_printUsage(const args_arg *argList, size_t argListSize) {
                         argList[idx].description);
 
                 } else {
-                    sprintf(tmp, "/%s", argList[idx].prefix);
+                    snprintf(tmp, sizeof(tmp), "/%s", argList[idx].prefix);
                     printf("%*s %s\n",
                         25, tmp,
                         argList[idx].description);

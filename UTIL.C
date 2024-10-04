@@ -44,6 +44,33 @@ int util_strncasecmp(const char *str1, const char *str2, size_t strLen) {
     return 0;
 }
 
+int util_snprintf(char *out, size_t size, const char *fmt, ...) {
+    int toWrite = 0;
+    char *outTmp = NULL;
+    va_list args;
+
+    va_start(args, fmt);
+    toWrite = vsprintf(NULL, fmt, args);
+
+    if (toWrite <= 0) {
+        out[0] = 0x00;
+        return toWrite;
+    }
+
+    outTmp = (char *) malloc(toWrite);
+    L866_NULLCHECK(outTmp);
+
+    vsprintf(outTmp, fmt, args);
+    strncpy(out, outTmp, size);
+    va_end(args);
+    free(outTmp);
+
+    if ((size_t) toWrite < size) {
+        return toWrite;
+    }
+    return (int) size;
+}
+
 void util_printWithApplicationLogo(const util_ApplicationLogo *logo, const char *fmt, ...) {
     static size_t logoLinesShown = 0;
     const char *logoLinePtr;
