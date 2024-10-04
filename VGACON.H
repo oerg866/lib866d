@@ -62,8 +62,9 @@ typedef struct {
    NOTE: This directly addresses VGA text memory, and may fail on Weirdo display types... */
 void vgacon_printSizedColorString(const char *str, size_t length, u8 fgColor, u8 bgColor, bool blink);
 void vgacon_printColorString(const char *str, u8 fgColor, u8 bgColor, bool blink);
-void vgacon_printfColor(u8 fgColor, u8 bgColor, bool blink, const char *fmt, ...);
 
+/*  Printf-style functions with colorized type text (except print which is blank) at
+    column 6 */
 void vgacon_print       (const char *fmt, ...);
 void vgacon_printOK     (const char *fmt, ...);
 void vgacon_printWarning(const char *fmt, ...);
@@ -74,7 +75,7 @@ void vgacon_printDebug  (const char *fmt, ...);
 void vgacon_fillColorCharacter(char character, size_t length, u8 fgColor, u8 bgColor, bool blink);
 /* Prints <character> <length> times (using existing color attributes) */
 void vgacon_fillCharacter(char character, size_t length);
-
+/* Returns true if the cursor is on the first column of the current line. */
 bool vgacon_isCursorAtStartOfLine(void);
 
 /* Get the Width of the text console in characters. */
