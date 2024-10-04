@@ -17,10 +17,10 @@
 #define __LIB866D_TAG__ "CPU_K6.C"
 #include "debug.h"
 
-#define CPU_K6_MSR_EFER  0xC0000080  /* Extended Feature Enable Register (EFER) */
-#define CPU_K6_MSR_WHCR  0xC0000082  /* Write Handling Control Register (WHCR) */
-#define CPU_K6_MSR_UWCCR 0xC0000085  /* UC/WC Cachability Control Register (UWCCR) */
-#define CPU_K6_MSR_EPMR  0xC0000086  /* Enhanced Power Management Register (EPMR) */
+#define CPU_K6_MSR_EFER  0xC0000080UL  /* Extended Feature Enable Register (EFER) */
+#define CPU_K6_MSR_WHCR  0xC0000082UL  /* Write Handling Control Register (WHCR) */
+#define CPU_K6_MSR_UWCCR 0xC0000085UL  /* UC/WC Cachability Control Register (UWCCR) */
+#define CPU_K6_MSR_EPMR  0xC0000086UL  /* Enhanced Power Management Register (EPMR) */
 
 #define CPU_K6_BADMUL 0xFF           /* Value indicating an invalid multiplier value */
 

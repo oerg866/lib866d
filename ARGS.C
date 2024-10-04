@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "types.h"
 #include "vgacon.h"
@@ -100,7 +101,7 @@ void args_printAppInfo(const args_arg *argList, size_t argListSize) {
     }
 }
 
-static void args_incrementAndCheckPageBreak() {
+static void args_incrementAndCheckPageBreak(void) {
     static size_t printedLines = 0;
     size_t consoleHeight = vgacon_getConsoleHeight();
     printedLines++;
@@ -109,7 +110,7 @@ static void args_incrementAndCheckPageBreak() {
     }
 }
 
-static void args_printLineSeparator() {
+static void args_printLineSeparator(void) {
     u16 i;
     u16 width = vgacon_getConsoleWidth();
     for (i = 0; i < width; ++i) {
@@ -120,7 +121,6 @@ static void args_printLineSeparator() {
 
 void args_printUsage(const args_arg *argList, size_t argListSize) {
     size_t idx = 0;
-    size_t param = 0;
     char   tmp[256] = { 0, };
 
     L866_NULLCHECK(argList);

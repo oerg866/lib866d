@@ -24,7 +24,7 @@
 #endif
 static const char _LIB866D_TAG[] = __LIB866D_TAG__;
 
-static _inline void __866_assert(const char *assertion, const char *error) {
+static void __866_assert(const char *assertion, const char *error) {
     static const char errHdr[] = "\xF0\xF0\xF0\xF0\xF0\xF0\xF0\xF0\xF0 LIB866D FATAL ERROR \xF0\xF0\xF0\xF0\xF0\xF0\xF0\xF0";
     static const char errFmt[] = "\n"
                                  " \x10 Module:   [ %s ]\n"
