@@ -52,17 +52,17 @@ typedef struct {
     struct { u32 low; u32 high; } length;
 	u32 type; // entry Type
 	u32 acpi; // extended
-} sys_e820MemEntry;
+} sys_E820MemBlock;
 #pragma pack()
 
-static void swapE820Entries(sys_e820MemEntry *a, sys_e820MemEntry *b) {
-    sys_e820MemEntry tmp;
-    memcpy(&tmp,    a,      sizeof(sys_e820MemEntry));
-    memcpy(a,       b,      sizeof(sys_e820MemEntry));
-    memcpy(b,       &tmp,   sizeof(sys_e820MemEntry));
+static void swapE820Entries(sys_E820MemBlock *a, sys_E820MemBlock *b) {
+    sys_E820MemBlock tmp;
+    memcpy(&tmp,    a,      sizeof(sys_E820MemBlock));
+    memcpy(a,       b,      sizeof(sys_E820MemBlock));
+    memcpy(b,       &tmp,   sizeof(sys_E820MemBlock));
 }
 
-static void sortE820Entries(sys_e820MemEntry *regions, size_t regionCount) {
+static void sortE820Entries(sys_E820MemBlock *regions, size_t regionCount) {
     size_t i;
     size_t j;
 
@@ -72,7 +72,7 @@ static void sortE820Entries(sys_e820MemEntry *regions, size_t regionCount) {
             if (regions[i].base.low > regions[j].base.low) { swapE820Entries(&regions[i], &regions[j]); }
 }
 
-static void fixE820Overlaps(sys_e820MemEntry *regions, size_t regionCount) {
+static void fixE820Overlaps(sys_E820MemBlock *regions, size_t regionCount) {
     size_t i;
     for (i = 0; i < regionCount - 1; i++) {
         /* Check if the section overlaps with the next */
@@ -83,40 +83,40 @@ static void fixE820Overlaps(sys_e820MemEntry *regions, size_t regionCount) {
     }
 }
 
-static sys_e820MemEntry *sys_getSortedInt15E820MemoryMap(size_t *entryCount) {
-    size_t regionCount = 0;
-    sys_e820MemEntry *regions = NULL;
-    sys_e820MemEntry _far *currentEntry = NULL;
-    asm_DWORD signature;
-    asm_DWORD currentEntrySize;
-    asm_DWORD continuationID;
-    bool error = false;
+static sys_E820MemBlock *sys_getSortedInt15E820MemoryMap(size_t *entryCount) {
+    sys_E820MemBlock       *regions         = NULL;
+    sys_E820MemBlock  _far *curBlockFarPtr  = NULL;
+    size_t                  regionCount     = 0;
+    bool                    error           = false;
 
-    continuationID.dword = 0UL;
+    u32                     tmp[3]          = { 0UL, 0UL, 0UL };
+    u32               _far *magicFarPtr     = &tmp[0];
+    u32               _far *entrySizeFarPtr = &tmp[1];
+    u32               _far *blockIDFarPtr   = &tmp[2];
 
     do {
         regionCount++;
-        regions = (sys_e820MemEntry *) realloc(regions, sizeof(sys_e820MemEntry) * regionCount);
+        regions = (sys_E820MemBlock *) realloc(regions, sizeof(sys_E820MemBlock) * regionCount);
 
         L866_NULLCHECK(regions);
 
-        currentEntrySize.dword = (u32) sizeof(sys_e820MemEntry);
-        currentEntry = (sys_e820MemEntry _far*) &regions[regionCount-1];
+        *entrySizeFarPtr = (u32) sizeof(sys_E820MemBlock);
+        curBlockFarPtr = (sys_E820MemBlock _far*) &regions[regionCount-1];
 
-        signature.dword = 0x534D4150; /* 'SMAP' */
+        *magicFarPtr = 0x534D4150UL; /* 'SMAP' */
 
         _asm {
             PUSHAD
             MOV_REG_IMM(_EAX, 0x0000E820)
-            MOV_REG_DWORDVAR(_EBX, continuationID.dword)
-            les di, currentEntry
-            MOV_REG_DWORDVAR(_ECX, currentEntrySize.dword)
-            MOV_REG_DWORDVAR(_EDX, signature.dword)
+            MOV_REG_DWORDPTR(_EBX, blockIDFarPtr)
+            MOV_REG_DWORDPTR(_ECX, entrySizeFarPtr)
+            MOV_REG_DWORDPTR(_EDX, magicFarPtr)
+            les di, curBlockFarPtr
             int 0x15
 
-            MOV_DWORDVAR_REG(currentEntrySize, _ECX, cx)
-            MOV_DWORDVAR_REG(continuationID, _EBX, bx)
-            MOV_DWORDVAR_REG(signature, _EAX, ax)
+            MOV_DWORDPTR_REG(entrySizeFarPtr,   _ECX)
+            MOV_DWORDPTR_REG(blockIDFarPtr,     _EBX)
+            MOV_DWORDPTR_REG(magicFarPtr,       _EAX)
 
             jnc e820_noerr
             mov error, 1
@@ -124,14 +124,15 @@ static sys_e820MemEntry *sys_getSortedInt15E820MemoryMap(size_t *entryCount) {
             POPAD
         }
 
-        if (signature.dword != 0x534D4150) {
+        if (*magicFarPtr != 0x534D4150UL) {
             error = true;
             break;
         }
 
-        DBG("E820 Region [%u] - address: %08lx length: %08lx, type %lx\n", (u16) regionCount-1, currentEntry->base.low, currentEntry->length.low, currentEntry->type);
+        DBG("E820 Region [%u] - address: %08lx length: %08lx, type %lx\n", (u16) regionCount-1,
+            curBlockFarPtr->base.low, curBlockFarPtr->length.low, curBlockFarPtr->type);
 
-    } while (error == false && continuationID.dword != 0UL);
+    } while (error == false && *blockIDFarPtr != 0UL);
 
     if (error == true) {
         free(regions);
@@ -154,7 +155,7 @@ static u32 sys_getMemorySize_Int15E820Method(bool *hasMemoryHole) {
     u32 holeSize = 0;
     size_t regionCount = 0;
     size_t i;
-    sys_e820MemEntry *regions = sys_getSortedInt15E820MemoryMap(&regionCount);
+    sys_E820MemBlock *regions = sys_getSortedInt15E820MemoryMap(&regionCount);
 
     DBG("E820 regions found: %u (buffer = 0x%p)\n", (u16) regionCount, regions);
 
@@ -212,10 +213,10 @@ static u32 sys_getMemorySize_Int15E820Method(bool *hasMemoryHole) {
 }
 
 static u32 sys_getMemorySize_Int15E801Method(bool *hasMemoryHole) {
-    u32 result;
-    u16 below16M;
-    u16 above16M;
-    bool success = false;
+    u32     result      = 0UL;
+    u16     below16M    = 0;
+    u16     above16M    = 0;
+    bool    success     = false;
 
     _asm {
         xor cx, cx
@@ -246,7 +247,7 @@ static u32 sys_getMemorySize_Int15E801Method(bool *hasMemoryHole) {
         mov below16M, ax
         mov above16M, bx
 
-        mov success, true
+        mov success, 1
     _ASM_LBL_(e801_error)
     }
 
@@ -340,14 +341,16 @@ sys_CPUManufacturer sys_getCPUManufacturer(const char **mfrClearName) {
 
 bool sys_cpuReadMSR(u32 msrId, sys_CPUMSR *msr) {
     u32 _far *msrFarPtr = (u32 _far *) msr;
+    u32 _far *msrIdFarPtr = (u32 _far *) &msrId;
 
+    UNUSED_ARG(msrId); /* asm macro below doesn't detect it as used */
     SYS_RETURN_ON_NULL(msr, false);
 
     _asm {
         pushf
         cli
         WBINVD
-        MOV_REG_DWORDVAR(_ECX, msrId)
+        MOV_REG_DWORDPTR(_ECX, msrIdFarPtr)
         RDMSR
         /* CPUMSR are two packed DWORDS so we can access them like this */
         les di, dword ptr msrFarPtr
@@ -363,14 +366,16 @@ bool sys_cpuReadMSR(u32 msrId, sys_CPUMSR *msr) {
 
 bool sys_cpuWriteMSR(u32 msrId, const sys_CPUMSR *msr) {
     u32 _far *msrFarPtr = (u32 _far *) msr;
+    u32 _far *msrIdFarPtr = (u32 _far *) &msrId;
 
+    UNUSED_ARG(msrId); /* asm macro below doesn't detect it as used */
     SYS_RETURN_ON_NULL(msr, false);
 
     _asm {
         pushf
         cli
         WBINVD
-        MOV_REG_DWORDVAR(_ECX, msrId)
+        MOV_REG_DWORDPTR(_ECX, msrIdFarPtr)
         /* CPUMSR are two packed DWORDS so we can access them like this */
         les di, dword ptr msrFarPtr
         MOV_REG_DWORD_PTR_ESDI_OFFSET(_EAX, 0)
@@ -446,21 +451,23 @@ bool sys_cpuWriteControlRegister(u8 index, const u32 *in) {
 }
 
 void sys_outPortL(u16 port, u32 outVal) {
+    u32 _far *outValFarPtr = (u32 _far *) &outVal;
+    UNUSED_ARG(outValFarPtr); /* asm macro below doesn't detect it as used */
     _asm {
         mov dx, port
-        MOV_REG_DWORDVAR(_EAX, outVal)
+        MOV_REG_DWORDPTR(_EAX, outValFarPtr)
         OUT_DX_EAX
     }
 }
 
 u32 sys_inPortL(u16 port) {
-    asm_DWORD retVal;
+    u32 retVal = 0;
+    u32 _far* retValFarPtr = &retVal;
+    UNUSED_ARG(retValFarPtr); /* asm macro below doesn't detect it as used */
     _asm {
         mov dx, port
         IN_EAX_DX
-        mov retVal.words.low, ax
-        SHR_REG_IMM(_EAX, 16)
-        mov retVal.words.high, ax
+        MOV_DWORDPTR_REG(retValFarPtr, _EAX)
     }
-    return retVal.dword;
+    return retVal;
 }
