@@ -15,6 +15,7 @@ Don't blame me if things explode from using this library, etc. (I hate legal tal
 * `CPU_K6`: Low-level helper tools for manipulating **AMD K6 Family CPU features**
     * EPMR, multiplier, MTRR, Write Order/Allocate, L1/L2 Cache
 * `DEBUG.H`: Assertions and debugging features
+* `PCI`: PCI Device access
 * `SYS`: Low-level system configuration and hardware detection functions
     * System memory detection
     * 32-Bit Port I/O

@@ -1,3 +1,9 @@
+/*  LIB866D
+    Debugging helpers and assertions
+
+    (C) 2024 E. Voirin (oerg866)
+*/
+
 /* Generic DEBUG print helper */
 
 #ifdef DEBUG
