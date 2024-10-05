@@ -110,6 +110,14 @@ u16 pci_getDeviceID(pci_Device device) {
     return pci_read16(device, 2UL);
 }
 
+pci_Class pci_getClass(pci_Device device) {
+    return (pci_Class) pci_read8(device, 0x0BUL);
+}
+
+u8 pci_getSubClass(pci_Device device) {
+    return pci_read8(device, 0x0AUL);
+}
+
 bool pci_findDevByID(u16 ven, u16 dev, pci_Device *device) {
     pci_Device *current = NULL;
 
@@ -154,14 +162,19 @@ restart:
 
 /* Calculate size of a BAR. This is hard to do so it's a separate function*/
 static u32 pci_getBARSize(pci_Device device, u32 index) {
-    u32 oldBARAddress = 0UL;
-    u32 size = 0UL;
-    u32 pciBARReg = 0x10UL + index * 4UL;
+    u32 oldBARAddress   = 0UL;
+    u8  oldCommandByte  = 0x00;
+    u32 pciBARReg       = 0x10UL + index * 4UL;
+    u32 size            = 0UL;
 
     L866_ASSERT(index < 6);
     L866_ASSERT(pci_isDevice(device) == true);
 
     oldBARAddress = pci_read32(device, pciBARReg);
+    oldCommandByte = pci_read8(device, 0x04);
+
+    /* Disable IO and mem decode while we do this */
+    pci_write8(device, 0x04UL, (u8) (oldCommandByte & 0xFC));
 
     /* Overwrite the entire BAR address with 1-bits and see what sticks */
     pci_write32(device, pciBARReg, 0xFFFFFFFFUL);
@@ -173,8 +186,9 @@ static u32 pci_getBARSize(pci_Device device, u32 index) {
     /* + 1 = the actual size of the bar */
     size++;
 
-    /* Write back old address to restore initial state */
+    /* Write back old address and command byte to restore initial state */
     pci_write32(device, pciBARReg, oldBARAddress);
+    pci_write8(device, 0x04, oldCommandByte);
 
     return size;
 }
@@ -192,8 +206,8 @@ bool pci_populateDeviceInfo(pci_DeviceInfo *info, pci_Device device) {
     info->subVendor         = pci_read16(device, 0x2CUL);
     info->subDevice         = pci_read16(device, 0x2EUL);
     info->isMultiFunction   = pci_isMultifunctionDevice(device);
-    info->classCode         = (pci_Class) pci_read8(device, 0x0BUL);
-    info->subClass          = pci_read8(device, 0x0AUL);
+    info->classCode         = pci_getClass(device);
+    info->subClass          = pci_getSubClass(device);
     info->progIF            = pci_read8(device, 0x09UL);
     info->revision          = pci_read8(device, 0x08UL);
     info->headerType        = (pci_HeaderType) (pci_read8(device, 0x0EUL) & 0x7F);

@@ -110,11 +110,12 @@ u16 pci_getDeviceID(pci_Device device);
 #if 0
 /*  Get the PCI Header Type for the given pci_Device */
 pci_HeaderType pci_getHeaderType(pci_Device device);
+#endif
+
 /*  Get the PCI Device Class for the given pci_Device */
 pci_Class pci_getClass(pci_Device device);
 /*  Get the PCI Device SubClass for the given pci_Device */
-pci_Class pci_getSubClass(pci_Device device);
-#endif
+u8 pci_getSubClass(pci_Device device);
 
 /*  Tries to find a PCI device with the given vendor/device ID.
     If successful, returns true and populates <device>, else false. */
