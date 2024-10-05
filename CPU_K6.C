@@ -298,3 +298,14 @@ bool cpu_K6_getL2CacheStatus(void) {
     L866_ASSERT(true == sys_cpuReadMSR(CPU_K6_MSR_EFER, &msr));
     return (msr.lo & 0x00000010UL) == 0UL;
 }
+
+bool cpu_K6_setDataPrefetch(bool enable) {
+    sys_CPUMSR  msr;
+    bool        success = true;
+
+    success &= sys_cpuReadMSR(CPU_K6_MSR_EFER, &msr);
+    msr.lo &= 0xFFFFFFFDUL; /* Mask Data Prefetch Enable */
+    msr.lo |= ((enable) ? 0x00000002UL : 0);
+    success &= sys_cpuWriteMSR(CPU_K6_MSR_EFER, &msr);
+    return success;
+}

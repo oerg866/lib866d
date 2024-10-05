@@ -39,7 +39,7 @@ typedef enum {
 
 /*  AMD K6-2 CXT/2+/III/III+: Enables/Disables Enhanced Power Management Register (EPMR) I/O block access. */
 bool cpu_K6_enableEPMRIOBlock(bool enable);
-/*  AMD K6-2+/III/III+: Set CPU Frequency Multiplier
+/*  AMD K6-2+/III+: Set CPU Frequency Multiplier
     Example: sys_K6setMultiplier(2,5); to set a multiplier of 2.5.
     Returns:
         SETMUL_OK on success
@@ -63,9 +63,17 @@ bool cpu_K6_getMemoryTypeRanges(cpu_K6_MemoryTypeRangeRegs *regs);
     call cpu_K6_getMemoryTypeRanges first and then modify one. */
 bool cpu_K6_setMemoryTypeRanges(const cpu_K6_MemoryTypeRangeRegs *regs);
 
-
+/* AMD K6-2 CXT/2+/III/III+: Turns the L1 cache ON or OFF. */
 bool cpu_K6_setL1Cache(bool enable);
+/* AMD K6-2 2+/III/III+: Turns the L2 cache ON or OFF. */
 bool cpu_K6_setL2Cache(bool enable);
+
+/* AMD K6-2 CXT/2+/III/III+: Returns 'True' if the L1 cache is enabled. */
 bool cpu_K6_getL1CacheStatus(void);
+/* AMD K6-2 2+/III/III+: Returns 'True' if the L2 cache is enabled. */
 bool cpu_K6_getL2CacheStatus(void);
+
+/* AMD K6-2 CXT/2+/III/III+: Enables Data Prefetch (DPE) */
+bool cpu_K6_setDataPrefetch(bool enable);
+
 #endif
