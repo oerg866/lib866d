@@ -34,7 +34,7 @@ static const u8 cpu_K6_setMultiplierValueTable[] = {
     0x06                            /* 6.0x */
 };
 
-#define CPU_K6_MAX_MULTIPLIER_INDEX ARRAY_SIZE(cpu_K6_setMultiplierValueTable)
+#define CPU_K6_MAX_MULTIPLIER_INDEX (ARRAY_SIZE(cpu_K6_setMultiplierValueTable) - 1)
 
 bool cpu_K6_enableEPMRIOBlock(bool enable) {
     u32 epmrBase = 0x0000FFF0 | (u32) enable; /* EPMR Base + Enable bit */
