@@ -21,7 +21,7 @@ typedef struct {
 static const sys_CPUMfrLookupEntry sys_cpuManufacturerTable[] = {
     { "AuthenticAMD", SYS_CPU_MFR_AMD,          "AMD"                       },
     { "CentaurHauls", SYS_CPU_MFR_IDT,          "IDT/Centaur"               },
-    { "CentaurHauls", SYS_CPU_MFR_CYRIX,        "Cyrix/STM/IBM"             },
+    { "CyrixInstead", SYS_CPU_MFR_CYRIX,        "Cyrix/STM/IBM"             },
     { "GenuineIntel", SYS_CPU_MFR_INTEL,        "Intel"                     },
     { "GenuineIotel", SYS_CPU_MFR_INTEL,        "Intel"                     },
     { "TransmetaCPU", SYS_CPU_MFR_TRANSMETA,    "Transmeta"                 },
