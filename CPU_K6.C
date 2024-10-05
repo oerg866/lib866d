@@ -80,9 +80,11 @@ bool cpu_K6_setMultiplier(u16 whole, u16 fraction) {
     multiplierValue |= 0x00001000UL;
     /* Set bus divisor control to 10b to cause the
         IBF field to be sampled when entering EPM Stop Grant State */
-    multiplierValue |= 0x00000100UL;
+    multiplierValue |= 0x00000200UL;
     /* Output value to Bus Divisor and Voltage ID Control (BVC)
         (IOBASE + 0x08) */
+
+    DBG("setMultiplier: Encoded BVC value: %08lx\n", multiplierValue);
 
     sys_outPortL(0xFFF8, multiplierValue);
     return cpu_K6_enableEPMRIOBlock(false);
