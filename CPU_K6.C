@@ -60,7 +60,12 @@ bool cpu_K6_setMultiplier(u16 whole, u16 fraction) {
 
     multiplierValue = (u32) cpu_K6_setMultiplierValueTable[multiIndex];
 
-    if (multiplierValue == CPU_K6_BADMUL)
+    DBG("setMultiplier: Multiplier value: 0x%04lx\n", multiplierValue);
+
+    if (multiplierValue == CPU_K6_BADMUL){
+        DBG("setMultiplier: Invalid multiplier!\n", multiplierValue);
+        return false;
+    }
 
     if (cpu_K6_enableEPMRIOBlock(true) == false) {
         return false;
