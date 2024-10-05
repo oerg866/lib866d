@@ -31,12 +31,21 @@ typedef struct {
     } configs[2];
 } cpu_K6_MemoryTypeRangeRegs;
 
+typedef enum {
+    SETMUL_OK = 0,
+    SETMUL_BADMUL = 1,
+    SETMUL_ERROR = 2
+} cpu_K6_SetMulError;
+
 /*  AMD K6-2 CXT/2+/III/III+: Enables/Disables Enhanced Power Management Register (EPMR) I/O block access. */
 bool cpu_K6_enableEPMRIOBlock(bool enable);
 /*  AMD K6-2+/III/III+: Set CPU Frequency Multiplier
     Example: sys_K6setMultiplier(2,5); to set a multiplier of 2.5.
-    Will return false on invalid multiplier numbers. */
-bool cpu_K6_setMultiplier(u16 whole, u16 fraction);
+    Returns:
+        SETMUL_OK on success
+        SETMUL_BADMUL on invalid multiplier values
+        SETMUL_ERROR on other errors */
+cpu_K6_SetMulError cpu_K6_setMultiplier(u16 whole, u16 fraction);
 /*  AMD K6-2 CXT/2+/III/III+: Set Write Ordering Mode.
     Mode corresponds to a cpu_K6_WriteOrderMode value. */
 bool cpu_K6_setWriteOrderMode(cpu_K6_WriteOrderMode mode);

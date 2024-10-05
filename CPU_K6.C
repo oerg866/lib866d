@@ -17,21 +17,21 @@
 #define __LIB866D_TAG__ "CPU_K6.C"
 #include "debug.h"
 
-#define CPU_K6_MSR_EFER  0xC0000080UL  /* Extended Feature Enable Register (EFER) */
-#define CPU_K6_MSR_WHCR  0xC0000082UL  /* Write Handling Control Register (WHCR) */
-#define CPU_K6_MSR_UWCCR 0xC0000085UL  /* UC/WC Cachability Control Register (UWCCR) */
-#define CPU_K6_MSR_EPMR  0xC0000086UL  /* Enhanced Power Management Register (EPMR) */
+#define CPU_K6_MSR_EFER     0xC0000080UL    /* Extended Feature Enable Register (EFER) */
+#define CPU_K6_MSR_WHCR     0xC0000082UL    /* Write Handling Control Register (WHCR) */
+#define CPU_K6_MSR_UWCCR    0xC0000085UL    /* UC/WC Cachability Control Register (UWCCR) */
+#define CPU_K6_MSR_EPMR     0xC0000086UL    /* Enhanced Power Management Register (EPMR) */
 
-#define CPU_K6_BADMUL 0xFF           /* Value indicating an invalid multiplier value */
+#define CPU_K6_BADMUL       0xFF            /* Value indicating an invalid multiplier value */
 
 static const u8 cpu_K6_setMultiplierValueTable[] = {
-    CPU_K6_BADMUL,  CPU_K6_BADMUL,  /* 0.0x, 0.5x (both invalid) */
-    CPU_K6_BADMUL,  CPU_K6_BADMUL,  /* 1.0x, 1.5x (both invalid) */
-    0x04,           CPU_K6_BADMUL,  /* 2.0x, 2.5x (2.5x = invalid) */
-    0x05,           0x07,           /* 3.0x, 3.5x */
-    0x02,           0x00,           /* 4.0x, 4.5x */
-    0x01,           0x03,           /* 5.0x, 5.5x */
-    0x06                            /* 6.0x */
+    CPU_K6_BADMUL,  CPU_K6_BADMUL,          /* 0.0x, 0.5x (both invalid) */
+    CPU_K6_BADMUL,  CPU_K6_BADMUL,          /* 1.0x, 1.5x (both invalid) */
+    0x04,           CPU_K6_BADMUL,          /* 2.0x, 2.5x (2.5x = invalid) */
+    0x05,           0x07,                   /* 3.0x, 3.5x */
+    0x02,           0x00,                   /* 4.0x, 4.5x */
+    0x01,           0x03,                   /* 5.0x, 5.5x */
+    0x06                                    /* 6.0x */
 };
 
 #define CPU_K6_MAX_MULTIPLIER_INDEX (ARRAY_SIZE(cpu_K6_setMultiplierValueTable) - 1)
@@ -44,18 +44,18 @@ bool cpu_K6_enableEPMRIOBlock(bool enable) {
     return sys_cpuWriteMSR(CPU_K6_MSR_EPMR, &msr);
 }
 
-bool cpu_K6_setMultiplier(u16 whole, u16 fraction) {
+cpu_K6_SetMulError cpu_K6_setMultiplier(u16 whole, u16 fraction) {
     size_t multiIndex;
     u32 multiplierValue = CPU_K6_BADMUL;
 
     if ((fraction != 0 && fraction != 5) || whole > 6) {
-        return false;
+        return SETMUL_BADMUL;
     }
 
     multiIndex = whole * 2 + fraction / 5;
 
     if (multiIndex > CPU_K6_MAX_MULTIPLIER_INDEX) {
-        return false;
+        return SETMUL_BADMUL;
     }
 
     multiplierValue = (u32) cpu_K6_setMultiplierValueTable[multiIndex];
@@ -64,11 +64,11 @@ bool cpu_K6_setMultiplier(u16 whole, u16 fraction) {
 
     if (multiplierValue == CPU_K6_BADMUL){
         DBG("setMultiplier: Invalid multiplier!\n", multiplierValue);
-        return false;
+        return SETMUL_BADMUL;
     }
 
     if (cpu_K6_enableEPMRIOBlock(true) == false) {
-        return false;
+        return SETMUL_ERROR;
     }
 
     /* Prepare multiplier value and shift to fill 'Internal Bus Divisor' Field */
@@ -87,7 +87,8 @@ bool cpu_K6_setMultiplier(u16 whole, u16 fraction) {
     DBG("setMultiplier: Encoded BVC value: %08lx\n", multiplierValue);
 
     sys_outPortL(0xFFF8, multiplierValue);
-    return cpu_K6_enableEPMRIOBlock(false);
+
+    return cpu_K6_enableEPMRIOBlock(false) ? SETMUL_OK : SETMUL_ERROR;
 }
 
 bool cpu_K6_setWriteOrderMode(cpu_K6_WriteOrderMode mode) {
