@@ -60,6 +60,18 @@ typedef enum {
     ___SYS_CPU_MFR_COUNT___ = SYS_CPU_MFR_UNKNOWN,
 } sys_CPUManufacturer;
 
+typedef enum {
+    OS_PURE_DOS,
+    OS_WIN_REAL_MODE,
+    OS_WIN_STANDARD_MODE,
+    OS_WIN_ENHANCED_MODE,
+    OS_WIN_95,
+    OS_WIN_98,
+    OS_WIN_ME,
+    OS_UNKNOWN,
+    ___OS_WIN_MODE_COUNT__,
+} sys_osWindowsMode;
+
 /*  Attempts to figure out memory size using BIOS functions.
     hasMemoryHole is optional ('true' will be written here if a 15M memory hole is found.)
     Returns the amount of memory in bytes on success.
@@ -94,5 +106,8 @@ bool sys_cpuWriteControlRegister(u8 index, const u32 *in);
 void sys_outPortL(u16 port, u32 outVal);
 /* reads a 32-Bit value from <port> */
 u32 sys_inPortL(u16 port);
+
+/* Gets the current mode of Windows that is running. */
+sys_osWindowsMode sys_getWindowsMode(void);
 
 #endif

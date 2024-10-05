@@ -471,3 +471,29 @@ u32 sys_inPortL(u16 port) {
     }
     return retVal;
 }
+
+sys_osWindowsMode sys_getWindowsMode(void) {
+    u16 winMode = 0;
+
+    /* WINDOWS Enhanced Mode Install Check (AX = 1600H) */
+    _asm {
+        mov ax, 0x1600
+        int 0x2f
+        mov winMode, ax
+    }
+
+    DBG("getWindowsMode: AX=%04x\n", winMode);
+    
+    switch (winMode) {
+        case 0x0000:    return OS_PURE_DOS;
+        case 0x1600:    return OS_PURE_DOS; /* DOS without XMS handler */
+        case 0xFFFF:    return OS_WIN_REAL_MODE;
+        case 0x0001:    return OS_WIN_STANDARD_MODE;
+        case 0x0002:    return OS_WIN_ENHANCED_MODE;
+        case 0x0004:    return OS_WIN_95;
+        case 0x0A04:    return OS_WIN_98;
+        case 0x5A04:    return OS_WIN_ME;
+        default:        break;
+    }
+    return OS_UNKNOWN;
+}
