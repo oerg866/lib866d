@@ -135,6 +135,6 @@ bool pci_populateDeviceInfo(pci_DeviceInfo *info, pci_Device device);
 /*  Test if current machine's PCI bus can be read/written by this application.
     on the current system.
     Returns 1 if yes, 0 if not. */
-bool pci_test();
+bool pci_test(void);
 
 #endif

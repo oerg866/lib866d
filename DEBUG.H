@@ -10,7 +10,7 @@
 # include "vgacon.h"
 # define DBG vgacon_printDebug
 #else
-# define DBG (void)
+# define DBG() do{}while(false)
 #endif
 
 #ifndef _866ASSERT_H_
