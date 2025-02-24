@@ -50,8 +50,8 @@ static const sys_CPUMfrLookupEntry sys_cpuManufacturerTable[] = {
 typedef struct {
     struct { u32 low; u32 high; } base;
     struct { u32 low; u32 high; } length;
-	u32 type; // entry Type
-	u32 acpi; // extended
+    u32 type; // entry Type
+    u32 acpi; // extended
 } sys_E820MemBlock;
 #pragma pack()
 
@@ -483,7 +483,7 @@ sys_osWindowsMode sys_getWindowsMode(void) {
     }
 
     DBG("getWindowsMode: AX=%04x\n", winMode);
-    
+
     switch (winMode) {
         case 0x0000:    return OS_PURE_DOS;
         case 0x1600:    return OS_PURE_DOS; /* DOS without XMS handler */
