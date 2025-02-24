@@ -472,6 +472,16 @@ u32 sys_inPortL(u16 port) {
     return retVal;
 }
 
+void sys_ioDelay(u16 loops) {
+    while (loops) {
+        _asm {
+            mov dx, 0xED
+            out dx, al
+        }
+        loops--;
+    }
+}
+
 sys_osWindowsMode sys_getWindowsMode(void) {
     u16 winMode = 0;
 

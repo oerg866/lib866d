@@ -107,6 +107,9 @@ void sys_outPortL(u16 port, u32 outVal);
 /* reads a 32-Bit value from <port> */
 u32 sys_inPortL(u16 port);
 
+/* Executes <n> IO Delay loops (akin to linux kernel udelay) */
+void sys_ioDelay(u16 loops);
+
 /* Gets the current mode of Windows that is running. */
 sys_osWindowsMode sys_getWindowsMode(void);
 
