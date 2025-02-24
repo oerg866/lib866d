@@ -124,7 +124,7 @@ bool pci_findDevByID(u16 ven, u16 dev, pci_Device *device) {
     pci_Device *current = NULL;
 
     while (NULL != (current = pci_getNextDevice(current))) {
-        pci_debugInfo(*current);
+        /* pci_debugInfo(*current); */
 
         if (pci_getVendorID(*current) == ven && pci_getDeviceID(*current) == dev) {
             *device = *current;
