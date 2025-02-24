@@ -24,6 +24,8 @@ static bool pci_isDevice(pci_Device device) {
 }
 
 static bool pci_isMultifunctionDevice(pci_Device device) {
+    /* We should only look at function 0 to check this. */
+    device.func = 0x00;
     return (pci_isDevice(device) && (pci_read8(device, 0x0E) >> 7 > 0));
 }
 
