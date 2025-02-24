@@ -19,11 +19,11 @@
 #define __LIB866D_TAG__ "PCI"
 #include "debug.h"
 
-static _inline bool pci_isDevice(pci_Device device) {
+static bool pci_isDevice(pci_Device device) {
     return (pci_getVendorID(device) != 0xFFFF);
 }
 
-static _inline bool pci_isMultifunctionDevice(pci_Device device) {
+static bool pci_isMultifunctionDevice(pci_Device device) {
     return (pci_isDevice(device) && (pci_read8(device, 0x0E) >> 7 > 0));
 }
 
@@ -231,7 +231,7 @@ bool pci_populateDeviceInfo(pci_DeviceInfo *info, pci_Device device) {
                 info->bars[i].address &= 0xFFFFFFFCUL;
             }
 
-            if (info->bars[i].address > 0)
+            if (info->bars[i].address > 0UL)
                 DBG(" --> BAR[%lu] = %08lx TYPE %d SIZE %lu KB\n", i, info->bars[i].address,info->bars[i].type, info->bars[i].size / 1024UL);
         }
     }
