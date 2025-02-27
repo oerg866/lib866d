@@ -104,6 +104,13 @@ void pci_write8(pci_Device device, u32 offset, u8 value) {
     pci_write32(device, offset, temp);
 }
 
+void pci_writeBytes(pci_Device device, u8 *buffer, u32 offset, u32 count) {
+    u32 i;
+    for (i = 0; i < count; i++) {
+        pci_write8(device, offset + i, buffer[i]);
+    }
+}
+
 u16 pci_getVendorID(pci_Device device) {
     return pci_read16(device, 0UL);
 }
