@@ -349,6 +349,7 @@ args_ParseError args_parseArg(const args_arg *argList, size_t argListSize, const
 
             if (ARGS_SUCCESS == (ret = doParse(&argList[idx], toParse))) {
                 DBG("args_parseArg: Successfully matched prefix /%s with input '%s'\n", argList[idx].prefix, toParse);
+                *argList[idx].foundFlag = true;
                 return ARGS_SUCCESS;
             }
 

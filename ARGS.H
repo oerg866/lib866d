@@ -45,6 +45,7 @@ typedef struct {
     const char     *paramNames;     /* Names of parameters, printed inside <...> brackets*/
     const char     *description;    /* Description of the argument */
     arg_type        type;           /* Argument type (see defines above) */
+    bool           *foundFlag;      /* Flag to be set when the argument is found */
     void           *dst;            /* Pointer to where the parsed value will go */
     arg_check_fn    checker;        /* Pointer to function that checks validity */
 } args_arg;
@@ -59,17 +60,17 @@ typedef struct {
       ARGS_EXPLAIN("This argument is so cool that you can't even imagine it!"),
      ...
 */
-#define ARGS_HEADER(title, appInfo)     { title,  NULL, appInfo,  ARG_HEADER, NULL, NULL }
+#define ARGS_HEADER(title, appInfo)     { title,  NULL, appInfo,  ARG_HEADER, NULL, NULL, NULL }
 /*  ARGS_USAGE defines an argument which prints the entire argument list.
     param is the parameter (e.g. '?' or 'help')
     desc is a descroption for it (e.g. 'Shows supported parameters' - kind of redundant..) */
-#define ARGS_USAGE(param, desc)         { param,  NULL, desc,     ARG_USAGE,  NULL, NULL }
+#define ARGS_USAGE(param, desc)         { param,  NULL, desc,     ARG_USAGE,  NULL, NULL, NULL }
 /*  ARGS_BLANK indicates a blank entry. The usage will display a blank line here.
     This can be used to logically group parameters together. */
-#define ARGS_BLANK                      { NULL,   NULL, NULL,     ARG_BLANK,  NULL, NULL }
+#define ARGS_BLANK                      { NULL,   NULL, NULL,     ARG_BLANK,  NULL, NULL, NULL }
 /*  ARGS_EXPLAIN indicates that the previous argument requires further
     explanation. It will be printed separately. */
-#define ARGS_EXPLAIN(x)                 { NULL,   NULL, x,        ARG_EXPLAIN,NULL, NULL }
+#define ARGS_EXPLAIN(x)                 { NULL,   NULL, x,        ARG_EXPLAIN,NULL, NULL, NULL }
 
 
 typedef enum {
