@@ -41,6 +41,7 @@ static void __866_assert(const char *assertion, const char *error) {
     vgacon_printColorString(errHdr, VGACON_COLOR_RED, VGACON_COLOR_BLACK, true);
     printf(errFmt, _LIB866D_TAG, assertion, error ? " \x10 ": "", error ? error : "", error ? "\n" : "");
     vgacon_fillColorCharacter((char)0xF0, 38, VGACON_COLOR_RED, VGACON_COLOR_BLACK, true);
+    printf("\n ");
     abort();
 }
 
