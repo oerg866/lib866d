@@ -40,15 +40,6 @@ typedef u16 arg_type;
 
 typedef bool (*arg_check_fn) (const void *); /* The void* argument is a pointer to the value to check */
 
-typedef struct { bool found; u8     value; } args_U8;
-typedef struct { bool found; u16    value; } args_U16;
-typedef struct { bool found; u32    value; } args_U32;
-typedef struct { bool found; i8     value; } args_I8;
-typedef struct { bool found; i16    value; } args_I16;
-typedef struct { bool found; i32    value; } args_I32;
-typedef struct { bool found; bool   value; } args_Bool;
-typedef struct { bool found; }               args_Flag;
-
 typedef struct {
     const char     *prefix;         /* Prefix of the argument's value */
     const char     *paramNames;     /* Names of parameters, printed inside <...> brackets*/
