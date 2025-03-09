@@ -18,6 +18,7 @@ typedef enum {
     AC97_VOL_CDIN,
     AC97_VOL_VIDEO,
     AC97_VOL_AUX,
+    AC97_VOL_LINE2,
     __AC97_VOL_COUNT__
 } ac97_VolumeCtrlIdx;
 

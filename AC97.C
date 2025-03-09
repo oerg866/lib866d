@@ -34,6 +34,7 @@ static const ac97_codecVolumeRegister c_ac97_codecVolumeRegisters[] = {
     { "CD Audio",   0x12, false, 15, -1, 0x1F, 0, 0, 0 },
     { "Video In",   0x14, false, 15, -1, 0x1F, 0, 0, 0 },
     { "Auxiliary",  0x16, false, 15, -1, 0x1F, 0, 0, 0 },
+    { "Line 2",     0x04, false, 15, -1, 0x1F, 0, 0, 0 },
 };
 
 /* From Linux kernel sources & some datasheets i found */
