@@ -18,6 +18,9 @@
 #define AC97_REG_GENERAL        (0x20)
 #define AC97_REG_GENERAL_3D_ON  (0x2000)
 #define AC97_REG_PWR_STATUS     (0x26)
+#define AC97_REG_EXTENDED_CTRL  (0x2A)
+#define AC97_REG_DAC_RATE       (0x2C)
+#define AC97_REG_ADC_RATE       (0x32)
 #define AC97_REG_VENDOR_ID1     (0x7C)
 #define AC97_REG_VENDOR_ID2     (0x7E)
 
@@ -296,4 +299,28 @@ bool ac97_setVolumePercent(ac97_Interface *ac, ac97_VolumeCtrlIdx channel, float
     rInt = (u16) round(r * (float) ac->mixer[channel].maxAttenuation / 100.0f);
 
     return ac97_setVolume(ac, channel, lInt, rInt, mute);
+}
+
+
+bool ac97_setVariableSampleRate(ac97_Interface *ac, bool enable, u16 rate) {
+    u16 extendedCtrlReg;
+    
+    L866_NULLCHECK(ac);
+    
+    /* Enable VSR */
+    extendedCtrlReg = ac->read(ac, AC97_REG_EXTENDED_CTRL);
+    extendedCtrlReg &= 0xFFFE;
+    extendedCtrlReg |= (u16) enable;
+        
+    /* If VSR bit doesn't stick, codec doesn't support it */
+    if (!ac97_writeVerify(ac, AC97_REG_EXTENDED_CTRL, extendedCtrlReg)) {
+        printf("Fail: %04x got %04x\n", extendedCtrlReg, ac->read(ac, AC97_REG_EXTENDED_CTRL));
+        return false;
+    }
+
+    if (!enable) {        
+        return true;
+    }
+    
+    return ac97_writeVerify(ac, AC97_REG_DAC_RATE, rate);
 }

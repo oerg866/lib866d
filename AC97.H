@@ -77,4 +77,6 @@ void ac97_getVolume(ac97_Interface *ac, ac97_VolumeCtrlIdx channel, ac97_Volume 
 /*  Set the volume for a given channel */
 bool ac97_setVolume(ac97_Interface *ac, ac97_VolumeCtrlIdx channel, u16 l, u16 r, bool mute);
 bool ac97_setVolumePercent(ac97_Interface *ac, ac97_VolumeCtrlIdx channel, float l, float r, bool mute);
+/*  Set Variable Sample Rate feature for the DAC of the codec */
+bool ac97_setVariableSampleRate(ac97_Interface *ac, bool enable, u16 rate);
 #endif
