@@ -60,13 +60,7 @@ u16 pci_read16(pci_Device device, u32 offset)
 u8 pci_read8(pci_Device device, u32 offset)
 /* Reads BYTE from PCI config space. */
 {
-    switch (offset & 3) {
-    case 3: return (u8) (pci_read32(device, offset) >> 24UL);
-    case 2: return (u8) (pci_read32(device, offset) >> 16UL);
-    case 1: return (u8) (pci_read32(device, offset) >>  8UL);
-    case 0: return (u8) (pci_read32(device, offset) >>  0UL);
-    default: return 0; /* to silence the compiler warning... */
-    }
+    return (u8) (pci_read32(device, offset) >> 8 * (offset % 4));
 }
 
 void pci_readBytes(pci_Device device, u8 *buffer, u32 offset, u32 count) {
