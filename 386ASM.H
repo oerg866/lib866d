@@ -69,7 +69,7 @@
 #define MOV_REG16_DI(reg) _DB(0x89) _DB(0xf8+reg)
 
 /* move <reg32>, <far pointer to C-var> */
-# define MOV_REG_DWORDPTR(reg, varPtr) \
+#define MOV_REG_DWORDPTR(reg, varPtr) \
     _nl push es \
     _nl push di \
     _nl les di, dword ptr varPtr \
@@ -78,7 +78,7 @@
     _nl pop es
 
 /* move <far ptr to C-var>, <reg32> */
-# define MOV_DWORDPTR_REG(varPtr, reg) \
+#define MOV_DWORDPTR_REG(varPtr, reg) \
     _nl push es \
     _nl push di \
     _nl les di, dword ptr varPtr \
@@ -119,3 +119,4 @@
 #define OUT_DX_EAX _DPREFIX_ _DB(0xef)
 #define IN_EAX_DX _DPREFIX_ _DB(0xed)
 
+#define RDTSC _DB(0x0f) _DB(0x31)
