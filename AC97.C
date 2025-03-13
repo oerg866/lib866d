@@ -43,6 +43,21 @@ static const struct {
     const u32   mask;
     const char *name;
 } c_ac97_supportedCodecs[] = {
+    { 0x434d4941UL, 0xffffffffUL, "C-Media CMI9738" },
+    { 0x434d4961UL, 0xffffffffUL, "C-Media CMI9739" },
+    { 0x434d4969UL, 0xffffffffUL, "C-Media CMI9780" },
+    { 0x434d4978UL, 0xffffffffUL, "C-Media CMI9761A" },
+    { 0x434d4982UL, 0xffffffffUL, "C-Media CMI9761B" },
+    { 0x434d4983UL, 0xffffffffUL, "C-Media CMI9761A+" },
+    { 0x43525900UL, 0xfffffff8UL, "Cirrus Logic/Crystal CS4297" },
+    { 0x43525910UL, 0xfffffff8UL, "Cirrus Logic/Crystal CS4297A" },
+    { 0x43525920UL, 0xfffffff8UL, "Cirrus Logic/Crystal CS4298" },
+    { 0x43525928UL, 0xfffffff8UL, "Cirrus Logic/Crystal CS4294" },
+    { 0x43525930UL, 0xfffffff8UL, "Cirrus Logic/Crystal CS4299" },
+    { 0x43525948UL, 0xfffffff8UL, "Cirrus Logic/Crystal CS4201" },
+    { 0x43525958UL, 0xfffffff8UL, "Cirrus Logic/Crystal CS4205" },
+    { 0x43525960UL, 0xfffffff8UL, "Cirrus Logic/Crystal CS4291" },
+    { 0x43525970UL, 0xfffffff8UL, "Cirrus Logic/Crystal CS4202" },
     { 0x83847600UL, 0xffffffffUL, "SigmaTel STAC9700" },
     { 0x83847601UL, 0xffffffffUL, "SigmaTel STAC9701" },
     { 0x83847605UL, 0xffffffffUL, "SigmaTel STAC9704" },
@@ -55,6 +70,9 @@ static const struct {
     { 0x49434511UL, 0xffffffffUL, "IC Ensemble ICE1232 / VIA VT1611A" },
     { 0x49434514UL, 0xffffffffUL, "IC Ensemble ICE1232A" },
     { 0x49434551UL, 0xffffffffUL, "IC Ensemble ICE1232A" },
+    { 0x56494120UL, 0xfffffff0UL, "VIA VT1613" },
+    { 0x56494141UL, 0xffffffffUL, "VIA VT1612" },
+    { 0x56494161UL, 0xffffffffUL, "VIA VT1612A" },
     { 0x00000000UL, 0x00000000UL, "Unknown/Generic" },
 };
 
