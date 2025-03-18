@@ -108,7 +108,7 @@ static void args_printLineSeparator(void) {
     u16 i;
     u16 width = vgacon_getConsoleWidth();
     for (i = 0; i < width; ++i) {
-        putchar(0xcd);
+        putchar(0xCDU);
     }
     args_incrementAndCheckPageBreak();
 }
