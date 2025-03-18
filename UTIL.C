@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <stdio.h>
 
 #include "util.h"
 #include "vgacon.h"
@@ -90,4 +91,11 @@ void util_printWithApplicationLogo(const util_ApplicationLogo *logo, const char 
     va_start (args, fmt);
     vprintf(fmt, args);
     va_end(args);
+}
+
+i32 util_round(float f) {
+    if (f > 0.0f)
+        return (i32)(f + 0.5f);
+    else
+        return (i32)(f - 0.5f);
 }

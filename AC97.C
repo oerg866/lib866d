@@ -314,8 +314,8 @@ bool ac97_setVolumePercent(ac97_Interface *ac, ac97_VolumeCtrlIdx channel, float
 
     L866_NULLCHECK(ac);
 
-    lInt = (u16) round(l * (float) ac->mixer[channel].maxAttenuation / 100.0f);
-    rInt = (u16) round(r * (float) ac->mixer[channel].maxAttenuation / 100.0f);
+    lInt = (u16) util_round(l * (float) ac->mixer[channel].maxAttenuation / 100.0f);
+    rInt = (u16) util_round(r * (float) ac->mixer[channel].maxAttenuation / 100.0f);
 
     return ac97_setVolume(ac, channel, lInt, rInt, mute);
 }

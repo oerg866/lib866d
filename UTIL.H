@@ -39,4 +39,7 @@ int util_snprintf(char *out, size_t size, const char *fmt, ...);
     Note: There will always be a blank character at the start of the line due to a DOS printing quirk workaround. */
 void util_printWithApplicationLogo(const util_ApplicationLogo *logo, const char *fmt, ...);
 
+/* Rounds to the nearest integer */
+i32 util_round(float f);
+
 #endif
