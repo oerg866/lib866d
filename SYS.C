@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
+#include <malloc.h>
 
 #include "sys.h"
 #include "types.h"
