@@ -28,4 +28,13 @@ typedef enum { false, true } bool;
 #define I32_MIN LONG_MIN
 #define I32_MAX LONG_MAX
 
+/* Shut up VSCode about a few keywords.... */
+#ifdef __INTELLISENSE__
+#define _asm asm
+#define _inline inline
+#define _far
+#define far
+#define _interrupt
+#endif
+
 #endif
