@@ -10,20 +10,21 @@
 # include "vgacon.h"
 # define DBG vgacon_printDebug
 #else
-# define DBG() do{}while(false)
+static void DBG(const char *fmt, ...) { (void)fmt; }
 #endif
 
 #ifndef _866ASSERT_H_
 #define _866ASSRT_H_
 
+
+#pragma warning(disable: 4505) /* MS C: unreferenced local function */
+
+#ifdef ASSERT_ENABLE
+
 #include <stdio.h>
 #include <stdlib.h>
 
-# if 1 /* #ifdef PRETTY_ASSERT */
-
 #include "vgacon.h"
-
-#pragma warning(disable: 4505) /* MS C: unreferenced local function */
 
 #ifndef __LIB866D_TAG__
 #error Please define __LIB866D_TAG__ for PRETTY_ASSERT support.
@@ -48,6 +49,11 @@ static void __866_assert(const char *assertion, const char *error) {
 #define L866_ASSERTM(x, error) ((void)((x) || (__866_assert(#x, error),0)))
 #define L866_ASSERT(x)         ((void)((x) || (__866_assert(#x, NULL),0)))
 #define L866_NULLCHECK(x)      L866_ASSERTM(x != NULL, "NULL POINTER")
+
+#else
+#define L866_ASSERTM(x, error)
+#define L866_ASSERT(x)
+#define L866_NULLCHECK(x)
 #endif
 
 #endif
