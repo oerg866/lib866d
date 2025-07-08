@@ -11,20 +11,48 @@
 
 #include <stddef.h>
 
-#define ARG_STR         0x0000
-#define ARG_U8          0x0100
-#define ARG_U16         0x0200
-#define ARG_U32         0x0300
-#define ARG_I8          0x0400
-#define ARG_I16         0x0500
-#define ARG_I32         0x0600
-#define ARG_BOOL        0x0700
-#define ARG_FLAG        0x0800
-#define ARG_BLANK       0xFB00
-#define ARG_HEADER      0xFC00
-#define ARG_EXPLAIN     0xFD00
-#define ARG_USAGE       0xFE00
-#define ARG_NONE        0xFF00
+/* EXAMPLE ON HOW TO DEFINE ARGUMENT LISTS:
+    static bool orderBurgers;
+    static u8   burgerCount;
+ 
+    // Checker function for the "burgers" argument
+    static bool burgerCheck(const void *arg) {
+        const u8 *count = (const u8 *) arg;
+        if (count > 10) {
+            printf("Too many burgers!");
+            return false;
+        }
+        return true;
+    }
+
+    static const args_arg k6init_args[] = {
+    //  { <argname>, <parameter short form description(s)>, <argument description>,       <argument type>, <found flag>,  <destination for value>, <checker function>}
+        { "burgers", "count",                               "Amount of burgers to order", ARG_U8,          &orderBurgers, &burgerCount,            NULL }
+    }
+
+    The argname is the actual argument to use (in this case /burgers:<count>).
+    The parameter short form is purely for usage printing reasons.
+    The argument description likewise is for usage printing reasons.
+    The argument type is one of the argument types listed below.
+    The found flag gets set when the argument is encountered. 
+    The destination is a pointer to where the value will be stored.
+    The checker function is a function called afterwards that can be used to do a range check or similar.
+*/
+
+#define ARG_STR         0x0000  /* for internal use; Use ARG_STRING instead */
+#define ARG_U8          0x0100  /* Argument is a 8 bit Unsigned Integer */
+#define ARG_U16         0x0200  /* Argument is a 16 bit Unsigned Integer */
+#define ARG_U32         0x0300  /* Argument is a 32 bit Unsigned Integer */
+#define ARG_I8          0x0400  /* Argument is a 8 bit Signed Integer */
+#define ARG_I16         0x0500  /* Argument is a 16 bit Signed Integer */
+#define ARG_I32         0x0600  /* Argument is a 32 bit Signed Integer */
+#define ARG_BOOL        0x0700  /* Argument is a Boolean */
+#define ARG_FLAG        0x0800  /* Argument is a flag (no parameter; the destination will just be set to 'true' when it is given) */
+#define ARG_BLANK       0xFB00  /* for internal use; use ARGS_BLANK instead */
+#define ARG_HEADER      0xFC00  /* for internal use; use ARGS_HEADER instead */
+#define ARG_EXPLAIN     0xFD00  /* for internal use; use ARGS_EXPLAIN instead */
+#define ARG_USAGE       0xFE00  /* for internal use; use ARGS_USAGE instead */
+#define ARG_NONE        0xFF00  /* for internal use */
 
 /* Defines a string of given length (MAXIMUM 255) */
 #define ARG_STRING(size) ( ARG_STR | (size & 0xFF) )
