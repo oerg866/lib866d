@@ -249,12 +249,12 @@ static args_ParseError parseAndSetStr(const args_arg *arg, const char *toParse, 
     return ARGS_SUCCESS;
 }
 
-static args_ParseError setFlag(const args_arg *arg) {
+static args_ParseError setFlag(const args_arg *arg, bool value) {
     bool *dstFlag = (bool*) arg->dst;
 
 
     if (dstFlag) {
-        *dstFlag = true;
+        *dstFlag = value;
     }
 
     if (arg->checker && arg->checker(dstFlag) == false) {
@@ -281,7 +281,8 @@ static args_ParseError doParse(const args_arg *arg, const char *toParse) {
         case ARG_I16:   return parseAndSetNum(arg, val, arraySize, true,  sizeof(i16));
         case ARG_I32:   return parseAndSetNum(arg, val, arraySize, true,  sizeof(i32));
         case ARG_BOOL:  return parseAndSetNum(arg, val, arraySize, false, sizeof(u8));
-        case ARG_FLAG:  return setFlag       (arg);
+        case ARG_FLAG:  return setFlag       (arg, true);
+        case ARG_NFLAG: return setFlag       (arg, false);
         case ARG_USAGE:
         default:
             return ARGS_INTERNAL_ERROR;

@@ -48,6 +48,7 @@
 #define ARG_I32         0x0600  /* Argument is a 32 bit Signed Integer */
 #define ARG_BOOL        0x0700  /* Argument is a Boolean */
 #define ARG_FLAG        0x0800  /* Argument is a flag (no parameter; the destination will just be set to 'true' when it is given) */
+#define ARG_NFLAG       0x0900  /* Argument is a negative flag (no parameter; the destination will just be set to 'false' when it is given) */
 #define ARG_BLANK       0xFB00  /* for internal use; use ARGS_BLANK instead */
 #define ARG_HEADER      0xFC00  /* for internal use; use ARGS_HEADER instead */
 #define ARG_EXPLAIN     0xFD00  /* for internal use; use ARGS_EXPLAIN instead */
