@@ -289,14 +289,18 @@ bool cpu_K6_setL2Cache(bool enable) {
 }
 
 bool cpu_K6_getL1CacheStatus(void) {
-    u32 cr0;
-    L866_ASSERT(true == sys_cpuReadControlRegister(0, &cr0));
+    u32     cr0 = 0;
+    bool    success = sys_cpuReadControlRegister(0, &cr0);
+ 
+    L866_ASSERT(success);
     return (cr0 & 0x40000000UL) == 0UL;
 }
 
 bool cpu_K6_getL2CacheStatus(void) {
-    sys_CPUMSR msr;
-    L866_ASSERT(true == sys_cpuReadMSR(CPU_K6_MSR_EFER, &msr));
+    sys_CPUMSR  msr;
+    bool        success = sys_cpuReadMSR(CPU_K6_MSR_EFER, &msr);
+
+    L866_ASSERT(success);
     return (msr.lo & 0x00000010UL) == 0UL;
 }
 
