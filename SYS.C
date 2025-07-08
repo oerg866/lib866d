@@ -161,7 +161,6 @@ static u32 sys_getMemorySize_Int15E820Method(bool *hasMemoryHole) {
     DBG("E820 regions found: %u (buffer = 0x%p)\n", (u16) regionCount, regions);
 
     if (regions == NULL) {
-        free(regions);
         return 0UL;
     }
 
