@@ -127,7 +127,7 @@ bool cpu_K6_setWriteAllocateRangeValues(u32 sizeKB, bool memoryHole) {
 
     /* Mask Write Allocate range bits */
     msr.lo = (sizeKB * 1024UL) & 0xFFC00000UL;
-    msr.lo |= (u32) memoryHole << 5UL;
+    msr.lo |= (u32) memoryHole << 16UL;
     msr.hi = 0UL;
 
     return sys_cpuWriteMSRAndVerify(CPU_K6_MSR_WHCR, &msr);
