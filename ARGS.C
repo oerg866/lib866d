@@ -148,7 +148,6 @@ void args_printUsage(const args_arg *argList, size_t argListSize) {
                 break;
             default:
                 /* current entry is an actual parameter type we need to print */
-                args_printLineSeparator();
 
                 /*  Should use snprintf here, but really old compilers don't have it and
                     null assignments happen on those when you use sprintf like this to
