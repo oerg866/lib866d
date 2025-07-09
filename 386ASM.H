@@ -42,6 +42,9 @@
 #define PUSHAD _DPREFIX_ _DB(0x60)
 #define POPAD _DPREFIX_ _DB(0x61)
 
+#define PUSHFD _DPREFIX_ _DB(0x9c)
+#define POPFD _DPREFIX_ _DB(0x9d)
+
 /* or <reg32>, <reg32> */
 #define OR_REG_REG(reg1, reg2) _DPREFIX_ _DB(0x09) _DB(0xc0+(reg2 SHL 3)+(reg1))
 
