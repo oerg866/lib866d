@@ -63,10 +63,11 @@ u8 pci_read8(pci_Device device, u32 offset)
     return (u8) (pci_read32(device, offset) >> 8 * (offset % 4));
 }
 
-void pci_readBytes(pci_Device device, u8 *buffer, u32 offset, u32 count) {
+void pci_readBytes(pci_Device device, void *buffer, u32 offset, u32 count) {
     u32 i;
+    u8 *u8Buffer = (u8 *) buffer;
     for (i = 0; i < count; i++) {
-        buffer[i] = pci_read8(device, offset + i);
+        u8Buffer[i] = pci_read8(device, offset + i);
     }
 }
 
@@ -98,10 +99,11 @@ void pci_write8(pci_Device device, u32 offset, u8 value) {
     pci_write32(device, offset, temp);
 }
 
-void pci_writeBytes(pci_Device device, u8 *buffer, u32 offset, u32 count) {
+void pci_writeBytes(pci_Device device, void *buffer, u32 offset, u32 count) {
     u32 i;
+    u8 *u8Buffer = (u8 *) buffer;
     for (i = 0; i < count; i++) {
-        pci_write8(device, offset + i, buffer[i]);
+        pci_write8(device, offset + i, u8Buffer[i]);
     }
 }
 

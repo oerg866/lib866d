@@ -93,7 +93,7 @@ u16 pci_read16(pci_Device device, u32 offset);
 u8  pci_read8 (pci_Device device, u32 offset);
 
 /*  Reads <count> bytes at <offset> from <device>'s cfg space into <buffer> */
-void pci_readBytes(pci_Device device, u8 *buffer, u32 offset, u32 count);
+void pci_readBytes(pci_Device device, void *buffer, u32 offset, u32 count);
 
 /*  Writes a 32-bit word to the given pci_Device's configuration space */
 void pci_write32(pci_Device device, u32 offset, u32 value);
@@ -102,7 +102,7 @@ void pci_write16(pci_Device device, u32 offset, u16 value);
 /*  Writes a 8-bit value to the given pci_Device's configuration space */
 void pci_write8 (pci_Device device, u32 offset, u8 value);
 /*  Writes <count> bytes at <offset> to <device>'s cfg space into <buffer> */
-void pci_writeBytes (pci_Device device, u8 *buffer, u32 offset, u32 value);
+void pci_writeBytes (pci_Device device, void *buffer, u32 offset, u32 value);
 
 /*  Get the PCI Vendor ID for the given pci_Device */
 u16 pci_getVendorID(pci_Device device);
