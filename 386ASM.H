@@ -45,6 +45,8 @@
 #define PUSHFD _DPREFIX_ _DB(0x9c)
 #define POPFD _DPREFIX_ _DB(0x9d)
 
+#define SMSW_AX _DB(0x0f) _DB(0x01) _DB(0xe0)
+
 /* or <reg32>, <reg32> */
 #define OR_REG_REG(reg1, reg2) _DPREFIX_ _DB(0x09) _DB(0xc0+(reg2 SHL 3)+(reg1))
 
