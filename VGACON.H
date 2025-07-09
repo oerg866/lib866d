@@ -63,13 +63,29 @@ typedef struct {
 void vgacon_printSizedColorString(const char *str, size_t length, u8 fgColor, u8 bgColor, bool blink);
 void vgacon_printColorString(const char *str, u8 fgColor, u8 bgColor, bool blink);
 
-/*  Printf-style functions with colorized type text (except print which is blank) at
-    column 6 */
-void vgacon_print       (const char *fmt, ...);
-void vgacon_printOK     (const char *fmt, ...);
-void vgacon_printWarning(const char *fmt, ...);
-void vgacon_printError  (const char *fmt, ...);
-void vgacon_printDebug  (const char *fmt, ...);
+/*  Printf-style logging functions with colorized type text (except print which is blank) at
+    column 6 - these are associated with a logging level that can be set. */
+void vgacon_printDebug  (const char *fmt, ...); /* Requires VGACON_LOG_LEVEL_DEBUG (muted by default for non-debug builds!!!) */
+void vgacon_print       (const char *fmt, ...); /* Requires VGACON_LOG_LEVEL_INFO or below */
+void vgacon_printOK     (const char *fmt, ...); /* Requires VGACON_LOG_LEVEL_OK or below */
+void vgacon_printWarning(const char *fmt, ...); /* Requires VGACON_LOG_LEVEL_WARNING or below */
+void vgacon_printError  (const char *fmt, ...); /* Requires VGACON_LOG_LEVEL_ERROR or below */
+
+/* VGA Console logging Level for enabling quiet modes */
+typedef enum {
+    VGACON_LOG_LEVEL_DEBUG      = 0,    /* printDebug and above will display (i.e. everything) (DEFAULT for debug builds) */
+    VGACON_LOG_LEVEL_INFO       = 1,    /* print and above will display (DEFAULT for non-debug builds) */
+    VGACON_LOG_LEVEL_OK         = 2,    /* printOK and above will display */
+    VGACON_LOG_LEVEL_WARNING    = 3,    /* printWarning and above will display*/
+    VGACON_LOG_LEVEL_ERROR      = 4,    /* printError will display */
+    VGACON_LOG_LEVEL_SILENT     = 5,    /* Nothing will display */
+} vgacon_LogLevel;
+
+/* Sets the logging level, below which print<n> functions will not display anyhting.
+    Default is VGACON_LOG_LEVEL_INFO */
+void vgacon_setLogLevel(vgacon_LogLevel level);
+/* vprintf-esque function to print at a given log level. Optionally prints a new line if newLine is set. */
+void vgacon_vprintfLogLevel(vgacon_LogLevel level, const char *fmt, va_list args, bool newLine);
 
 /* Prints <character> <length> times with color attributes. */
 void vgacon_fillColorCharacter(char character, size_t length, u8 fgColor, u8 bgColor, bool blink);

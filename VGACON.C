@@ -33,6 +33,8 @@ typedef struct {
     u8      attr;   /* VGA color attribute */
 } vgacon_BIOSChar;
 
+static vgacon_LogLevel vgacon_logLevel = VGACON_LOG_LEVEL_INFO;
+
 u8                  _far *vgacon_MEM_CurrentVideoMode   = MK_FP(0x0040, 0x0049);
 u16                 _far *vgacon_MEM_ColumnsOnScreen    = MK_FP(0x0040, 0x004A);
 u16                 _far *vgacon_MEM_PageSizeBytes      = MK_FP(0x0040, 0x004C);
@@ -85,36 +87,54 @@ void vgacon_printColorString(const char *str, u8 fgColor, u8 bgColor, bool blink
     vgacon_printSizedColorString(str, strlen(str), fgColor, bgColor, blink);
 }
 
-#define VPRINTF(fmt, args) do { va_start (args, fmt); vprintf (fmt, args); va_end (args); } while (0)
+#define VPRINTF_INTERNAL(lvl, fmt) do { va_list args; va_start (args, fmt); vgacon_vprintfLogLevel(lvl, fmt, args, false); va_end (args); } while (0)
 
-void vgacon_print(const char *fmt, ...) {
-    va_list args;
-    printf("      \xB3");
-    VPRINTF(fmt, args);
-}
+void vgacon_vprintfLogLevel(vgacon_LogLevel level, const char *fmt, va_list args, bool newLine) {
+    if (vgacon_logLevel > level)
+        return;
 
-void vgacon_printOK(const char *fmt, ...) {
-    va_list args;
-    putch(' '); vgacon_printColorString("   OK", VGACON_COLOR_GREEN, VGACON_COLOR_BLACK, false); putch('\xB3');
-    VPRINTF(fmt, args);
-}
+    putch(' ');
 
-void vgacon_printWarning(const char *fmt, ...) {
-    va_list args;
-    putch(' '); vgacon_printColorString(" WARN", VGACON_COLOR_YELLO, VGACON_COLOR_BLACK, false); putch('\xB3');
-    VPRINTF(fmt, args);
-}
+    switch (level) {
+        case VGACON_LOG_LEVEL_DEBUG:    vgacon_printColorString("DEBUG", VGACON_COLOR_BLUE, VGACON_COLOR_BLACK, false); break;
+        case VGACON_LOG_LEVEL_INFO:     printf("      "); break;
+        case VGACON_LOG_LEVEL_OK:       vgacon_printColorString("   OK", VGACON_COLOR_GREEN, VGACON_COLOR_BLACK, false); break;
+        case VGACON_LOG_LEVEL_WARNING:  vgacon_printColorString(" WARN", VGACON_COLOR_YELLO, VGACON_COLOR_BLACK, false); break;
+        case VGACON_LOG_LEVEL_ERROR:    vgacon_printColorString("ERROR", VGACON_COLOR_RED, VGACON_COLOR_BLACK, false); break;
+        case VGACON_LOG_LEVEL_SILENT:   return;
+    }
 
-void vgacon_printError(const char *fmt, ...) {
-    va_list args;
-    putch(' '); vgacon_printColorString("ERROR", VGACON_COLOR_RED, VGACON_COLOR_BLACK, false); putch('\xB3');
-    VPRINTF(fmt, args);
+    putch('\xB3');
+    vprintf(fmt, args);
+
+    if (newLine) {
+        printf("\n");
+    }
 }
 
 void vgacon_printDebug(const char *fmt, ...) {
-    va_list args;
-    putch(' '); vgacon_printColorString("DEBUG", VGACON_COLOR_BLUE, VGACON_COLOR_BLACK, false); putch('\xB3');
-    VPRINTF(fmt, args);
+    VPRINTF_INTERNAL(VGACON_LOG_LEVEL_DEBUG, fmt);
+}
+
+void vgacon_print(const char *fmt, ...) {
+    VPRINTF_INTERNAL(VGACON_LOG_LEVEL_INFO, fmt);
+}
+
+void vgacon_printOK(const char *fmt, ...) {
+    VPRINTF_INTERNAL(VGACON_LOG_LEVEL_OK, fmt);
+}
+
+void vgacon_printWarning(const char *fmt, ...) {
+    VPRINTF_INTERNAL(VGACON_LOG_LEVEL_WARNING, fmt);
+}
+
+void vgacon_printError(const char *fmt, ...) {
+    VPRINTF_INTERNAL(VGACON_LOG_LEVEL_ERROR, fmt);
+}
+
+void vgacon_setLogLevel(vgacon_LogLevel level) {
+    if (level <= VGACON_LOG_LEVEL_SILENT)
+        vgacon_logLevel = level;
 }
 
 void vgacon_fillColorCharacter(char character, size_t length, u8 fgColor, u8 bgColor, bool blink) {
