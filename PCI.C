@@ -60,7 +60,9 @@ u16 pci_read16(pci_Device device, u32 offset)
 u8 pci_read8(pci_Device device, u32 offset)
 /* Reads BYTE from PCI config space. */
 {
-    return (u8) (pci_read32(device, offset) >> 8 * (offset % 4));
+    u8 ret = (u8) (pci_read32(device, offset) >> 8 * (offset % 4));
+    DBG("PCI Read @ %02x: %02x\n", (u16) offset, ret);
+    return ret;
 }
 
 void pci_readBytes(pci_Device device, void *buffer, u32 offset, u32 count) {
@@ -96,6 +98,7 @@ void pci_write8(pci_Device device, u32 offset, u8 value) {
     case 1: temp = (temp & 0xFFFF00FFUL) | ((u32) value <<  8UL); break;
     case 0: temp = (temp & 0xFFFFFF00UL) | ((u32) value <<  0UL); break;
     }
+    DBG("PCI Write @ %02x: %02x\n", (u16) offset, value);
     pci_write32(device, offset, temp);
 }
 
