@@ -9,6 +9,7 @@
 #ifdef DEBUG
 # include "vgacon.h"
 # define DBG vgacon_printDebug
+# define ASSERT_ENABLE
 #else
 static void DBG(const char *fmt, ...) { (void)fmt; }
 #endif
