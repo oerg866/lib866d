@@ -97,7 +97,7 @@ void vgacon_vprintfLogLevel(vgacon_LogLevel level, const char *fmt, va_list args
 
     switch (level) {
         case VGACON_LOG_LEVEL_DEBUG:    vgacon_printColorString("DEBUG", VGACON_COLOR_BLUE, VGACON_COLOR_BLACK, false); break;
-        case VGACON_LOG_LEVEL_INFO:     printf("      "); break;
+        case VGACON_LOG_LEVEL_INFO:     printf("     "); break;
         case VGACON_LOG_LEVEL_OK:       vgacon_printColorString("   OK", VGACON_COLOR_GREEN, VGACON_COLOR_BLACK, false); break;
         case VGACON_LOG_LEVEL_WARNING:  vgacon_printColorString(" WARN", VGACON_COLOR_YELLO, VGACON_COLOR_BLACK, false); break;
         case VGACON_LOG_LEVEL_ERROR:    vgacon_printColorString("ERROR", VGACON_COLOR_RED, VGACON_COLOR_BLACK, false); break;
