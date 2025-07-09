@@ -450,6 +450,16 @@ bool sys_cpuWriteControlRegister(u8 index, const u32 *in) {
     return true;
 }
 
+bool sys_cpuIsInV86Mode() {
+    u8 result;
+    __asm {
+        SMSW_AX
+        and ax, 1
+        mov result, al
+    }
+    return result;
+}
+
 void sys_outPortL(u16 port, u32 outVal) {
     u32 _far *outValFarPtr = (u32 _far *) &outVal;
     UNUSED_ARG(outValFarPtr); /* asm macro below doesn't detect it as used */

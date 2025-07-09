@@ -102,6 +102,9 @@ bool sys_cpuWriteMSRAndVerify(u32 msrId, const sys_CPUMSR *msr);
 bool sys_cpuReadControlRegister(u8 index, u32 *out);
 bool sys_cpuWriteControlRegister(u8 index, const u32 *in);
 
+/*  Checks if the CPU is in Virtual 8086 mode (e.g. if EMM386 is loaded) */
+bool sys_cpuIsInV86Mode();
+
 /* writes a 32-Bit value to <port> */
 void sys_outPortL(u16 port, u32 outVal);
 /* reads a 32-Bit value from <port> */
