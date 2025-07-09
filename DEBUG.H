@@ -15,7 +15,7 @@ static void DBG(const char *fmt, ...) { (void)fmt; }
 #endif
 
 #ifndef _866ASSERT_H_
-#define _866ASSRT_H_
+#define _866ASSERT_H_
 
 
 #pragma warning(disable: 4505) /* MS C: unreferenced local function */
