@@ -9,6 +9,8 @@
 #ifndef _VESABIOS_H_
 #define _VESABIOS_H_
 
+#include <stddef.h>
+
 #include "types.h"
 
 #pragma warning(disable: 4001) /* Non-'int' bitfields in Microsoft C */

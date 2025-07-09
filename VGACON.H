@@ -8,6 +8,8 @@
 #define _VGACON_H_
 
 #include <stdlib.h>
+#include <stdarg.h>
+
 #include "types.h"
 
 #define VGACON_COLOR_BLACK 0
