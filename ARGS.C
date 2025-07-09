@@ -83,7 +83,7 @@ static const args_ParseErrorLookup args_parseErrorLookupTable[] = {
 
 #define GET_ARG_TYPE(type) ((arg_type) (type & 0xFF00))
 #define GET_ARG_ARRAYSIZE(type) (type & 0x00FF)
-#define ARG_HAS_PARAM(type) (type != ARG_FLAG && type != ARG_USAGE)
+#define ARG_HAS_PARAM(type) (type != ARG_FLAG && type != ARG_NFLAG && type != ARG_USAGE)
 
 void args_printAppInfo(const args_arg *argList, size_t argListSize) {
     size_t idx;
