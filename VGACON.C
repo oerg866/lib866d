@@ -33,7 +33,11 @@ typedef struct {
     u8      attr;   /* VGA color attribute */
 } vgacon_BIOSChar;
 
+#ifdef DEBUG
+static vgacon_LogLevel vgacon_logLevel = VGACON_LOG_LEVEL_DEBUG;
+#else
 static vgacon_LogLevel vgacon_logLevel = VGACON_LOG_LEVEL_INFO;
+#endif
 
 u8                  _far *vgacon_MEM_CurrentVideoMode   = MK_FP(0x0040, 0x0049);
 u16                 _far *vgacon_MEM_ColumnsOnScreen    = MK_FP(0x0040, 0x004A);
