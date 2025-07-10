@@ -22,13 +22,15 @@ typedef struct {
 } cpu_K6_WriteAllocateConfig;
 
 typedef struct {
-    struct {
-        bool isValid;
-        u32 offset;
-        u32 sizeKB;
-        bool writeCombine;
-        bool uncacheable;
-    } configs[2];
+    bool isValid;
+    u32 offset;
+    u32 sizeKB;
+    bool writeCombine;
+    bool uncacheable;
+} cpu_K6_MemoryTypeRange;
+
+typedef struct {
+    cpu_K6_MemoryTypeRange configs[2];
 } cpu_K6_MemoryTypeRangeRegs;
 
 typedef enum {
