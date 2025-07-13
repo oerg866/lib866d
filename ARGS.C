@@ -36,6 +36,7 @@ static const arg_type_name argTypeNames[] = {
     { ARG_I32,  "Int32 ", "Positive or Negative Integer" },
     { ARG_BOOL, "Bool  ", "Boolean (0 or 1)" },
     { ARG_FLAG, "Flag  ", "Option Toggle" },
+    { ARG_NFLAG,"Flag  ", "Option De-toggle" },
 };
 
 static const char * getArgTypeName(arg_type argType) {
@@ -308,6 +309,7 @@ static bool isThisArg(const args_arg *arg, const char *str) {
         case ARG_EXPLAIN:
             return false;
         case ARG_FLAG:      /* fallthrough */
+        case ARG_NFLAG:     /* fallthrough */
         case ARG_USAGE:
             if (str[prefixLen + 1] != '\0') return false;
             break;
