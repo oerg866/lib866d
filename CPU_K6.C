@@ -271,8 +271,8 @@ bool cpu_K6_setL1Cache(bool enable) {
     u32 cr0;
 
     success &= sys_cpuReadControlRegister(0, &cr0);
-    cr0 &= 0xBFFFFFFFUL; /* Mask Cache Disable */
-    cr0 |= ((enable) ? 0UL : 0x40000000UL );
+    cr0 &= 0x9FFFFFFFUL; /* Mask Cache Disable + Non-Writeback */
+    cr0 |= ((enable) ? 0UL : 0x60000000UL );
     success &= sys_cpuWriteControlRegister(0, &cr0);
     return success;
 }
