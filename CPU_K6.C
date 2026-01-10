@@ -124,11 +124,24 @@ bool cpu_K6_setWriteAllocateRange(const cpu_K6_WriteAllocateConfig *config) {
 
 bool cpu_K6_setWriteAllocateRangeValues(u32 sizeKB, bool memoryHole) {
     sys_CPUMSR msr;
+    sys_CPUIDVersionInfo cpuid = sys_getCPUIDVersionInfo();
+    bool isK62OrHigher = cpuid.basic.family == 5 && cpuid.basic.model >= 8;
 
-    /* Mask Write Allocate range bits */
-    msr.lo = (sizeKB * 1024UL) & 0xFFC00000UL;
-    msr.lo |= (u32) memoryHole << 16UL;
-    msr.hi = 0UL;
+    if (isK62OrHigher) {
+        /* Mask Write Allocate range bits (K6-2 or higher)*/
+        msr.lo = (sizeKB * 1024UL) & 0xFFC00000UL;
+        msr.lo |= (u32) memoryHole << 16UL;
+        msr.hi = 0UL;
+    } else {
+        /* Regular K6 has a different layout */
+        if (sizeKB > 508UL * 1024UL) {
+            DBG("Write allocate size out of range.\n");
+            return false;
+        }
+        msr.lo = (sizeKB / (4UL * 1024UL)) << 1;
+        msr.lo |= (u32) memoryHole;
+        msr.hi = 0UL;
+    }
 
     return sys_cpuWriteMSRAndVerify(CPU_K6_MSR_WHCR, &msr);
 }
