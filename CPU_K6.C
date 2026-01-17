@@ -122,23 +122,38 @@ bool cpu_K6_setWriteAllocateRange(const cpu_K6_WriteAllocateConfig *config) {
     return cpu_K6_setWriteAllocateRangeValues(config->sizeKB, config->memoryHole);
 }
 
+
+/*  Returns whether or not the CPU's WHCR has the newer layout.
+    Refer to AMD-K6®-2 Processor Data Sheet 21850J/0—February 2000
+    Page 40, Write Handling Control Register (WHCR)–Model 8/[7:0] */
+static bool cpu_K6_isNewWHCRLayout() {
+    sys_CPUIDVersionInfo cpuid = sys_getCPUIDVersionInfo();
+    u16 family = cpuid.basic.family;
+    u16 model = cpuid.basic.model;
+    u16 stepping = cpuid.basic.stepping;
+    
+    /* New layout is if it's a K6-2 with stepping 8 or higher (or a newer model) */
+
+    return (family == 5 && model > 8)
+        || (family == 5 && model == 8 && stepping >= 8);
+}
+
 bool cpu_K6_setWriteAllocateRangeValues(u32 sizeKB, bool memoryHole) {
     sys_CPUMSR msr;
-    sys_CPUIDVersionInfo cpuid = sys_getCPUIDVersionInfo();
-    bool isK62OrHigher = cpuid.basic.family == 5 && cpuid.basic.model >= 8;
 
-    if (isK62OrHigher) {
+    if (cpu_K6_isNewWHCRLayout()) {
         /* Mask Write Allocate range bits (K6-2 or higher)*/
         msr.lo = (sizeKB * 1024UL) & 0xFFC00000UL;
         msr.lo |= (u32) memoryHole << 16UL;
         msr.hi = 0UL;
     } else {
-        /* Regular K6 has a different layout */
-        if (sizeKB > 508UL * 1024UL) {
+        /* Regular K6 and early K6-2 has a different layout */
+        if (sizeKB > (508UL * 1024UL)) {
             DBG("Write allocate size out of range.\n");
             return false;
         }
-        msr.lo = (sizeKB / (4UL * 1024UL)) << 1;
+        /* WAELIM field is amount of 4MB blocks to cover */
+        msr.lo = ((sizeKB / 1024UL) / 4UL) << 1;
         msr.lo |= (u32) memoryHole;
         msr.hi = 0UL;
     }
@@ -157,8 +172,15 @@ bool cpu_K6_getWriteAllocateRange(cpu_K6_WriteAllocateConfig *config) {
         return false;
     }
 
-    config->sizeKB = (msr.lo & 0xFFC00000UL) / 1024UL;
-    config->memoryHole = (msr.lo >> 5UL) ? true : false;
+    if (cpu_K6_isNewWHCRLayout()) {
+        config->sizeKB = (msr.lo & 0xFFC00000UL) / 1024UL;
+        config->memoryHole = (msr.lo >> 5UL) ? true : false;
+    } else {
+        u32 blocks = (msr.lo & 0xFFUL) >> 1;
+        config->sizeKB = blocks * 4UL * 1024UL;
+        config->memoryHole = (msr.lo & 0x01UL) ? true : false;
+    }
+
     return true;
 }
 
