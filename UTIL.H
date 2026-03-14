@@ -17,6 +17,17 @@
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #define UNUSED_ARG(_arg_) (void) _arg_
 
+#define SWAP16(x)   ((u16)(((x) >> 8) & 0x00FF) | \
+                          (((x) << 8) & 0xFF00))
+
+#define SWAP32(x)   ((u32)(((x) >> 24) & 0x000000FFUL) | \
+                          (((x) >>  8) & 0x0000FF00UL) | \
+                          (((x) <<  8) & 0x00FF0000UL) | \
+                          (((x) << 24) & 0xFF000000UL))
+
+#define BIT(x)      (1 << (x))
+#define BIT32(x)    (1UL << (x))
+
 typedef struct {
     const char *logoData;
     size_t width;
@@ -28,6 +39,9 @@ typedef struct {
 bool util_stringEquals(const char *str1, const char *str2);
 bool util_stringStartsWith(const char *full, const char *toCheck);
 void util_stringReplaceChar(char *str, char oldChar, char newChar);
+
+void util_swapInPlace16(u16 *buf);
+void util_swapInPlace32(u32 *buf);
 
 /* strncasecmp implementation for C89 */
 int util_strncasecmp(const char *str1, const char *str2, size_t strLen);

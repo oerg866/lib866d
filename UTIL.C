@@ -30,6 +30,14 @@ void util_stringReplaceChar(char *str, char oldChar, char newChar) {
     }
 }
 
+void util_swapInPlace16(u16 *buf) {
+    *buf = SWAP16(*buf);
+}
+
+void util_swapInPlace32(u32 *buf) {
+    *buf = SWAP32(*buf);
+}
+
 int util_strncasecmp(const char *str1, const char *str2, size_t strLen) {
     while (strLen--) {
         int c1 = (int) tolower(*str1);
