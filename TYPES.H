@@ -34,6 +34,7 @@ typedef enum { false, true } bool;
 #define _inline inline
 #define _far
 #define far
+#define cdecl
 #define _interrupt
 #endif
 
