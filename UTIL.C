@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "util.h"
 #include "vgacon.h"
@@ -106,4 +107,12 @@ i32 util_round(float f) {
         return (i32)(f + 0.5f);
     else
         return (i32)(f - 0.5f);
+}
+
+void util_sleep(u32 milliseconds) {
+    clock_t start_time = clock();
+    clock_t clocksToWait = (milliseconds * ((u32) CLOCKS_PER_SEC) / 1000UL);
+    
+    if (clocksToWait == 0UL) clocksToWait = 1UL;
+    while (clock() < (start_time + clocksToWait)){}; 
 }

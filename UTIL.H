@@ -56,4 +56,7 @@ void util_printWithApplicationLogo(const util_ApplicationLogo *logo, const char 
 /* Rounds to the nearest integer */
 i32 util_round(float f);
 
+/* Sleep for n milliseconds (may be inaccurate) */
+void util_sleep(u32 milliseconds);
+
 #endif
