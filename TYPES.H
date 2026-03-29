@@ -41,6 +41,8 @@ typedef enum { false, true } bool;
 #define _inline inline
 #define _far
 #define far
+#define _huge
+#define huge
 #define cdecl
 #define _interrupt
 #endif
