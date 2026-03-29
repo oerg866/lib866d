@@ -14,6 +14,11 @@
 #define MK_FP(seg,off) ((void _far *) (((u32) (seg) << 16) | ((u16) (off))))
 #endif
 
+#ifndef MAX
+#define MAX(a,b) (((a)>(b))?(a):(b))
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#endif
+
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #define UNUSED_ARG(_arg_) (void) _arg_
 
