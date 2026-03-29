@@ -16,10 +16,20 @@ Don't blame me if things explode from using this library, etc. (I hate legal tal
     * EPMR, multiplier, MTRR, Write Order/Allocate, L1/L2 Cache
 * `DEBUG.H`: Assertions and debugging features
 * `PCI`: PCI Device access
+* `PICDMA` : Interrupt controller & DMA controller access
+    * Enabling/Disabling interrupts
+    * EOI 
+    * DMA masking and unmasking
+    * DMA setup
+* `SND_SB16` : SoundBlaster 16 access
+    * 16-Bit Stereo DMA playback with interrupt callback
+    * DSP readout
+* `TIMER` : RTC oscillator-based timer with interrupt callback
 * `SYS`: Low-level system configuration and hardware detection functions
     * System memory detection
     * 32-Bit Port I/O
     * CPUID reading, CPU MSR R/W, CPU Control Register R/W
+    * DMA Memory allocation
 * `UTIL`: Generic utility functions (string manipulation, etc)
 * `VESABIOS`: Functions for getting VESA BIOS data and mode information
 * `VGACON`: Functions for interfacing with the VGA text console and colorful string printing
