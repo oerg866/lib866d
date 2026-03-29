@@ -10,11 +10,14 @@
 #include <limits.h>
 
 typedef unsigned char  u8;
-typedef unsigned int   u16;
+typedef unsigned short u16;
 typedef unsigned long  u32;
 typedef signed   char  i8;
 typedef signed   short i16;
 typedef signed   long  i32;
+typedef signed   char  s8;  // compatibility
+typedef signed   short s16; // compatibility
+typedef signed   long  s32; // compatibility
 
 #if defined(__BORLANDC__) || defined(__TURBOC__) || defined(_MSC_VER)
 typedef enum { false, true } bool;
