@@ -33,6 +33,13 @@ typedef struct {
     } extended;
 } sys_CPUIDVersionInfo;
 
+typedef struct {
+    void _huge *aligned; /* The aligned buffer that is guaranteed not to cross a DMA boundary. */
+    u16 alignedSize;
+    void _huge *rawPtr;  /* The raw pointer used to free it later. */
+    u32 rawSize;
+} sys_DMABuffer;
+
 #pragma pack()
 
 typedef enum {
@@ -78,6 +85,9 @@ typedef enum {
     Returns 0 on error. */
 u32 sys_getMemorySize(bool *hasMemoryHole);
 
+/*  Get the pyhsical 32-bit address of a FAR pointer */
+u32 sys_getPhysicalAddress(void _far *ptr);
+
 /*  Retreives the CPUID String from the CPU and places it in outStr.
     outStr must be at least 13 bytes in size (12 + 1 for null terminator).
     As of now, always returns true (until I implement detection...)
@@ -105,15 +115,21 @@ bool sys_cpuWriteControlRegister(u8 index, const u32 *in);
 /*  Checks if the CPU is in Virtual 8086 mode (e.g. if EMM386 is loaded) */
 bool sys_cpuIsInV86Mode();
 
-/* writes a 32-Bit value to <port> */
+/*  writes a 32-Bit value to <port> */
 void sys_outPortL(u16 port, u32 outVal);
-/* reads a 32-Bit value from <port> */
+/*  reads a 32-Bit value from <port> */
 u32 sys_inPortL(u16 port);
 
-/* Executes <n> IO Delay loops (akin to linux kernel udelay) */
+/*  Executes <n> IO Delay loops (akin to linux kernel udelay) */
 void sys_ioDelay(u16 loops);
 
-/* Gets the current mode of Windows that is running. */
+/*  Gets the current mode of Windows that is running. */
 sys_osWindowsMode sys_getWindowsMode(void);
+
+/*  Allocates a buffer that is guaranteed to have at least <size> bytes of space 
+    and does not cross a 64K page boundary. Maximum size: 65536 */
+bool sys_allocateDMABuffer(sys_DMABuffer *buf, u32 size);
+/*  Frees DMA buffer.*/
+void sys_freeDMABuffer(sys_DMABuffer *buf);
 
 #endif

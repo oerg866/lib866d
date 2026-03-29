@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <malloc.h>
+#include <dos.h>
 
 #include "sys.h"
 #include "types.h"
@@ -288,6 +289,12 @@ u32 sys_getMemorySize(bool *hasMemoryHole) {
     return result;
 }
 
+u32 sys_getPhysicalAddress(void _far *ptr) {
+    u32 segment = (u32) FP_SEG(ptr);
+    u32 offset = (u32) FP_OFF(ptr);
+    return (segment << 4) + offset;
+}
+
 bool sys_getCPUIDString(char *outStr) {
     /* TODO: Error out if CPU does not support CPUID. */
     char _far *outStrFar = (char _far *) outStr;
@@ -516,4 +523,58 @@ sys_osWindowsMode sys_getWindowsMode(void) {
         default:        break;
     }
     return OS_UNKNOWN;
+}
+
+bool sys_allocateDMABuffer(sys_DMABuffer *buf, u32 size) {
+    void _huge *raw;
+    u32         rawSize;
+    u32         rawPhys;
+    u32         alignedPhys;
+    u32         pageEnd;
+
+    L866_NULLCHECK(buf);
+    L866_ASSERTM(size <= 0x10000UL, "Requested buffer size out of range.");
+    
+    /* Allocate double so we are guaranteed to find a fitting
+       aligned region within, regardless of where malloc lands */
+    rawSize = size << 1;
+    raw     = halloc(rawSize, 1);
+    
+    if (raw == NULL) {
+        DBG("dma buffer alloc fail (%lu bytes)\n", size);
+        return false;
+    }
+
+    /* Find the next 64K page boundary above rawPhys */
+    rawPhys = sys_getPhysicalAddress(raw);
+    pageEnd = (rawPhys & 0xFFFF0000UL) + 0x10000UL;
+
+    /* If the raw buffer already fits before the page boundary,
+    use it as-is, otherwise start after the boundary        */
+    if (rawPhys + size <= pageEnd) {
+        alignedPhys = rawPhys;
+    } else {
+        alignedPhys = pageEnd;
+    }
+
+    /* Convert flat physical address back to a normalised huge pointer
+       seg  = alignedPhys >> 4
+       off  = alignedPhys & 0x0F                                       */
+    buf->aligned     = MK_FP(alignedPhys >> 4, alignedPhys & 0x0F);
+    buf->alignedSize = (u16)size;
+    buf->rawPtr      = raw;
+    buf->rawSize     = rawSize;
+
+    return true;
+}
+
+void sys_freeDMABuffer(sys_DMABuffer *buf) {
+    L866_NULLCHECK(buf);
+    if (buf->rawPtr != NULL) {
+        hfree(buf->rawPtr);
+        buf->rawPtr      = NULL;
+        buf->aligned     = NULL;
+        buf->alignedSize = 0;
+        buf->rawSize     = 0;
+    }
 }
