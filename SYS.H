@@ -79,6 +79,9 @@ typedef enum {
     ___OS_WIN_MODE_COUNT__,
 } sys_osWindowsMode;
 
+/* Generic typedef for an interrupt service routine */
+typedef void (_interrupt _far * sys_ISR)(void);
+
 /*  Attempts to figure out memory size using BIOS functions.
     hasMemoryHole is optional ('true' will be written here if a 15M memory hole is found.)
     Returns the amount of memory in bytes on success.
