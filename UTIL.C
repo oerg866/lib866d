@@ -111,8 +111,15 @@ i32 util_round(float f) {
 
 void util_sleep(u32 milliseconds) {
     clock_t start_time = clock();
-    clock_t clocksToWait = (milliseconds * ((u32) CLOCKS_PER_SEC) / 1000UL);
+    clock_t end_time = util_getTimeOffsetInClocks(milliseconds);
     
-    if (clocksToWait == 0UL) clocksToWait = 1UL;
-    while (clock() < (start_time + clocksToWait)){}; 
+    while (clock() < (end_time)){};
+}
+
+u32 util_msToClocks(u32 milliseconds) {
+    return (milliseconds * ((u32) (CLOCKS_PER_SEC))) / 1000UL;
+}
+
+u32 util_getTimeOffsetInClocks(u32 milliseconds) {
+    return clock() + util_msToClocks(milliseconds);
 }

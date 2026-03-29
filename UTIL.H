@@ -63,5 +63,9 @@ i32 util_round(float f);
 
 /* Sleep for n milliseconds (may be inaccurate) */
 void util_sleep(u32 milliseconds);
+/* Converts milliseconds to CLOCKS */
+u32 util_msToClocks(u32 milliseconds);
+/* Gets the clock() count value that corresponds to current time + <milliseconds> */
+u32 util_getTimeOffsetInClocks(u32 milliseconds);
 
 #endif
