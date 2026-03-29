@@ -51,7 +51,7 @@ static void __866_assert(const char *assertion, const char *error) {
 
 #define L866_ASSERTM(x, error) ((void)((x) || (__866_assert(#x, error),0)))
 #define L866_ASSERT(x)         ((void)((x) || (__866_assert(#x, NULL),0)))
-#define L866_NULLCHECK(x)      L866_ASSERTM(x != NULL, "NULL POINTER")
+#define L866_NULLCHECK(x)      L866_ASSERTM((void _far *) (x) != (void _far *) (NULL), "NULL POINTER")
 
 #else
 #define L866_ASSERTM(x, error)
