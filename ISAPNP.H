@@ -108,6 +108,8 @@ bool pnp_biosDetect(pnp_BiosInfo *info);
 size_t pnp_getDeviceData(pnp_DeviceInfo *devices, size_t maxCards);
 /*  Get device data for a single device by PNP string (e.g. ESS0968) */
 bool pnp_getDeviceDataByString(pnp_DeviceInfo *dst, const char *toFind);
+/*  Get pointer to logical device inside a pnpp device */
+pnp_LogicalDeviceInfo *pnp_getLogicalDevice(pnp_DeviceInfo *dst, u16 index);
 /*  Check if the memory region #<index> in the logical device <ld> is active. */
 bool pnp_memRangeIsActive(pnp_LogicalDeviceInfo *ld, u16 index);
 /*  Gets the memory region #<index> base address in <ld> */

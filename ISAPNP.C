@@ -1,10 +1,10 @@
-#include "isapnp.h"
-
 /*  LIB866D
     ISA PnP Functions
 
     (C) 2026 E. Voirin (oerg866)
 */
+
+#include "isapnp.h"
 
 #include <math.h>
 #include <string.h>
@@ -382,6 +382,13 @@ bool pnp_getDeviceDataByString(pnp_DeviceInfo *dst, const char *toFind) {
 
     pnp_writeReg(PNP_REG_CONFIG_CTRL, PNP_CTRL_WAIT_KEY );
     return found;
+}
+
+pnp_LogicalDeviceInfo *pnp_getLogicalDevice(pnp_DeviceInfo *dst, u16 index) {
+    L866_NULLCHECK(dst);
+    if (index >= dst->numLogDevs) return NULL;
+
+    return &dst->logDev[index];
 }
 
 bool pnp_memRangeIsActive(pnp_LogicalDeviceInfo *ld, u16 index) {
