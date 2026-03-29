@@ -16,7 +16,11 @@ typedef signed   char  i8;
 typedef signed   short i16;
 typedef signed   long  i32;
 
+#if defined(__BORLANDC__) || defined(__TURBOC__) || defined(_MSC_VER)
 typedef enum { false, true } bool;
+#else
+#include <stdbool.h>
+#endif
 
 #define U8_MAX UCHAR_MAX
 #define I8_MAX SCHAR_MAX
