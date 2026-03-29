@@ -8,6 +8,8 @@
     (C) 2026 E. Voirin (oerg866)
 */
 
+#include <stdlib.h>
+
 #include "types.h"
 
 /* PnP BIOS Installation Check Structure (found in ROM) */
