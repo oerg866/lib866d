@@ -64,7 +64,7 @@ typedef enum {
 
 static sys_DMABuffer    dmaBuffer;
 static bool             initialized         = false;
-static void (_interrupt _far  *oldISR)()    = NULL;
+static sys_ISR          oldISR              = NULL;
 static SB16_DMACallback userCallback        = NULL;
 static u16              bufferIndex         = 0;
 static u16              sbPort              = 0;
