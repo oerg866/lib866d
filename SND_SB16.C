@@ -73,6 +73,7 @@ static u16              sbDmaL              = 0;
 static u16              sbDmaH              = 0;
 static bool             oldIrqState         = false;
 static u16              playbackDma         = 0;
+static bool             atexitRegistered    = false;
 
 #pragma pack(1)
 typedef union { u8 raw; struct {
@@ -235,6 +236,12 @@ bool sb16_init(u16 io, u16 irq, u16 dmaL, u16 dmaH) {
     sbDmaH = dmaH;
     bufferIndex = 0;
     playbackDma = 0;
+
+    /* Safety net */
+    if (!atexitRegistered) {
+        atexit(sb16_deinit);
+        atexitRegistered = true;
+    }
 
     /* Set new IRQ / ISR state */
     _dos_setvect(irqVector, dmaPlaybackIsr);
