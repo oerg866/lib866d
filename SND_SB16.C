@@ -63,16 +63,16 @@ typedef enum {
 } sb16_MixerReg;
 
 static sys_DMABuffer    dmaBuffer;
-static bool             initialized = false;
-static void (_interrupt _far  *oldISR)() = NULL;
-static SB16_DMACallback userCallback = NULL;
-static u16              bufferIndex = 0;
-static u16              sbPort = 0;
-static u16              sbIrq = 0;;
-static u16              sbDmaL = 0;
-static u16              sbDmaH = 0;
-static bool             oldIrqState = false;
-static u16              playbackDma = 0;
+static bool             initialized         = false;
+static void (_interrupt _far  *oldISR)()    = NULL;
+static SB16_DMACallback userCallback        = NULL;
+static u16              bufferIndex         = 0;
+static u16              sbPort              = 0;
+static u16              sbIrq               = 0;;
+static u16              sbDmaL              = 0;
+static u16              sbDmaH              = 0;
+static bool             oldIrqState         = false;
+static u16              playbackDma         = 0;
 
 #pragma pack(1)
 typedef union { u8 raw; struct {
