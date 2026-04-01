@@ -70,26 +70,29 @@ typedef struct {
 /*  Checks if CD-ROM extensions (e.g. MSCDEX) are installed.
     info will contain the amount of CD-ROM Drives and the first drive's letter.
     info may be NULL for a simple installation check */
-bool    cdrom_getCdexInfo       (cdrom_CdexInfo *info);
+bool                    cdrom_getCdexInfo       (cdrom_CdexInfo *info);
 
 /* CD-Audio */
 /*  Get Audio CD Table of Contents. Returns true if successful. */
-bool    cda_getTOC              (char letter, cda_TOC *toc);
+bool                    cda_getTOC              (char letter, cda_TOC *toc);
 /*  Get array index of the first entry in a TOC that is a standard audio track
     returns U8_MAX if none found  */
-u8      cda_getFirstAudioTrack  (const cda_TOC *toc);
+u8                      cda_getFirstAudioTrack  (const cda_TOC *toc);
+/*  Get pointer to the track of selected index */
+const cda_TrackEntry   *cda_tocGetTrack         (const cda_TOC *toc, u8 track);
+
 /*  Play selected audio track (toc array index) */
-bool    cda_playTrack           (char letter, const cda_TOC *toc, u8 track);
+bool                    cda_playTrack           (char letter, const cda_TOC *toc, u8 track);
 /*  Stop Audio CD Playback */
-bool    cda_stop                (char letter);
+bool                    cda_stop                (char letter);
 /*  Get playback position for given track, inTrack and onDisc may be NULL if the info is not needed.
     A return code of false is not necessarily fatal - it probably just means playback
     of the current track has ended. */
-bool    cda_getPlaybackPosition (char letter, cda_MSF *inTrack, cda_MSF *onDisc);
+bool                    cda_getPlaybackPosition (char letter, cda_MSF *inTrack, cda_MSF *onDisc);
 
 /* Converts MM:SS:FF structure to raw frame value */
-u32     cda_msfToFrames         (cda_MSF m);
+u32                     cda_msfToFrames         (cda_MSF m);
 /* Converts raw frame value to MM:SS:FF structure */
-cda_MSF cda_framesToMSF         (u32 raw);
+cda_MSF                 cda_framesToMSF         (u32 raw);
 
 #endif

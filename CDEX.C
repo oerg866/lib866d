@@ -447,6 +447,12 @@ u8 cda_getFirstAudioTrack(const cda_TOC *toc) {
     return 0;
 }
 
+const cda_TrackEntry *cda_tocGetTrack(const cda_TOC *toc, u8 track) {
+    L866_NULLCHECK(toc);
+    if (track >= toc->trackCount) return false;
+    return &toc->tracks[track];
+}
+
 bool cda_playTrack(char letter, const cda_TOC *toc, u8 track) {
     cdrom_CdexRequest req;
     bool ret;
@@ -515,5 +521,3 @@ bool cda_getPlaybackPosition(char letter, cda_MSF *inTrack, cda_MSF *onDisc) {
 
     return true;
 }
-
-bool cda_isPlaying();
