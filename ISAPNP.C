@@ -21,7 +21,6 @@
 #define __LIB866D_TAG__ "ISAPNP"
 #include "debug.h"
 
-/* This code is hard to write... Maybe some other time :\ */
 
 #pragma pack (1)
 
@@ -128,14 +127,77 @@ bool pnp_biosDetect(pnp_BiosInfo *info) {
 #define PNP_REG_DMA0            0x74   /* DMA channel 0                */
 #define PNP_REG_DMA(x)          (PNP_REG_DMA0 + (x))    /* x range 0 - 1 */
 
-static const u8 pnp_initKey[] = {
-    0x6A, 0xB5, 0xDA, 0xED, 0xF6, 0xFB, 0x7D, 0xBE,
-    0xDF, 0x6F, 0x37, 0x1B, 0x0D, 0x86, 0xC3, 0x61,
-    0xB0, 0x58, 0x2C, 0x16, 0x8B, 0x45, 0xA2, 0xD1,
-    0xE8, 0x74, 0x3A, 0x9D, 0xCE, 0xE7, 0x73, 0x39,
-};
 
+#define PNP_S_PNP_VER       0x01
+#define PNP_S_LOG_DEV_ID    0x02
+#define PNP_S_COMPAT_ID     0x03
+#define PNP_S_IRQ           0x04
+#define PNP_S_DMA           0x05
+#define PNP_S_START_DEP     0x06
+#define PNP_S_END_DEP       0x07
+#define PNP_S_IO            0x08
+#define PNP_S_IO_FIXED      0x09
+#define PNP_S_END_TAG       0x0F
+#define PNP_S_VENDOR        0x0E
 
+#define PNP_L_ANSI_ID       0x02
+#define PNP_L_UNICODE_ID    0x03
+#define PNP_L_VENDOR        0x04
+#define PNP_L_MEM32         0x05
+#define PNP_L_MEM32_FIXED   0x06
+
+static pnp_ResourceList *pnp_dependentFunctionListGrow(pnp_DependentFunctionList *dfList) {
+    u16 newCount = dfList->count + 1;
+    dfList->funcs = realloc(dfList->funcs, newCount * sizeof(pnp_DependentFunctionList));
+
+    L866_NULLCHECK(dfList->funcs);
+
+    memset(&dfList->funcs[newCount-1], 0, sizeof(pnp_DependentFunctionList));
+
+    dfList->count = newCount;
+
+    return &dfList->funcs[newCount-1];
+}
+
+static bool pnp_resourceListAppend(pnp_ResourceList *list, pnp_Resource *toAdd) {
+    u16 newCount = list->count + 1;
+
+    list->items = realloc(list->items, newCount * sizeof(pnp_Resource));
+
+    L866_NULLCHECK(list->items);
+    L866_NULLCHECK(toAdd);
+
+    list->items[newCount-1] = *toAdd;
+
+    list->count = newCount;
+    return true;
+}
+
+static void pnp_freeResourceList(pnp_ResourceList *list) {
+    if (list == NULL) return;
+
+    if (list->items != NULL) {
+        free(list->items);
+        list->items = NULL;
+    }
+    list->count = 0;
+}
+
+void pnp_freeDeviceData(pnp_DeviceInfo *info) {
+    size_t i;
+    size_t df;
+    if (info == NULL) return;
+
+    for (i = 0; i < info->numLogDevs; i++) {
+        /* Free resources */
+        pnp_freeResourceList(&info->logDev[i].resources);
+
+        /* Free all DFs (= ResourceListLists)*/
+        for (df = 0; df < info->logDev[i].dfList.count; df++) {
+            pnp_freeResourceList(&info->logDev[i].dfList.funcs[df]);
+        }
+    }
+}
 
 static void pnp_writeReg(u8 reg, u8 val) {
     outp(PNP_ADDRESS, reg);
@@ -166,8 +228,45 @@ static u16 pnp_readReg16(u8 reg) {
     return ((u16)pnp_readReg(reg) << 8) | ((u16)pnp_readReg(reg + 1));
 }
 
+static bool pnp_readResourceByte(u8 *dst) {
+    /* Poll status bit until ready */
+    u16 retries = 10;
+    u8 status = 0;
+
+    while (retries--) { 
+        status = pnp_readReg(PNP_REG_STATUS);
+        if (status & 0x01)  {
+            *dst = pnp_readReg(PNP_REG_RESOURCEDATA);
+            break;
+        }
+    };
+
+    DBG("readResoureBytes status %02x %s %02x\n", status, (status & 1) ? "OK  " : "FAIL", *dst);
+    return (status & 1) == 1;
+}
+
+static bool pnp_readResourceStructWithMaxSize(void *buf, size_t dstSize, size_t srcSize) {
+    u8 *dst = (u8 *)buf;
+    while (srcSize--) {
+        u8 data;
+        if (!pnp_readResourceByte(&data)) return false;
+        if (dstSize--) {
+            *dst = data;
+            dst++;
+        }
+    }
+    return true;
+}
+
 /* Step 1: Send initiation key, puts all cards into config state */
 static void pnp_sendInitKey(void) {
+    static const u8 initKey[] = {
+        0x6A, 0xB5, 0xDA, 0xED, 0xF6, 0xFB, 0x7D, 0xBE,
+        0xDF, 0x6F, 0x37, 0x1B, 0x0D, 0x86, 0xC3, 0x61,
+        0xB0, 0x58, 0x2C, 0x16, 0x8B, 0x45, 0xA2, 0xD1,
+        0xE8, 0x74, 0x3A, 0x9D, 0xCE, 0xE7, 0x73, 0x39,
+    };
+
     u16 i;
 
     /* Write 0x00 twice to enter initiation state */
@@ -176,11 +275,10 @@ static void pnp_sendInitKey(void) {
 
     /* Send the 32-byte LFSR key */
     for (i = 0; i < 32; i++) {
-        outp(PNP_ADDRESS, pnp_initKey[i]);
+        outp(PNP_ADDRESS, initKey[i]);
         sys_ioDelay(1);
     }
 }
-
 
 static u8 pnp_readWithDelay() {
     u8 ret = inp(PNP_READ);
@@ -226,19 +324,12 @@ static void pnp_prepareEnumeration(void) {
     util_sleep(1);
 }
 
-/* Begin to enumerate currently unassigned device. Returns the Device ID if successful. */
-static u32 pnp_startDeviceEnumeration(u8 csn) {
+/* Read 72 bit serial ID from device that is in isolation or config state. */
+static u32 pnp_read72BitSerialId(void) {
     u8 ourChecksum = 0x6A;
     u8 theirChecksum = 0;
     u32 id = 0UL;
     u16 i;
-
-    /* Tell cards to begin isolation (serial ID read) */
-    util_sleep(1);
-    outp(PNP_ADDRESS, PNP_REG_ISOLATION);   /* set to Isolation register */
-    util_sleep(1);
-
-    /* Read 64-bit serial ID, one bit at a time */
 
     for (i = 0; i < 72; i++) {
         u8 bit = pnp_readSerialBit();
@@ -260,16 +351,196 @@ static u32 pnp_startDeviceEnumeration(u8 csn) {
     if (id == 0x00000000UL || id == 0xFFFFFFFFUL) return 0UL;
     if (ourChecksum != theirChecksum) return 0UL;
 
+    return id;
+}
+
+/* Begin to enumerate currently unassigned device. Returns the Device ID if successful, 0 if not. */
+static u32 pnp_startDeviceEnumeration(u8 csn) {
+    u32 id = 0UL;
+
+    /* Tell cards to begin isolation (serial ID read) */
+    util_sleep(1);
+    outp(PNP_ADDRESS, PNP_REG_ISOLATION);   /* set to Isolation register */
+    util_sleep(1);
+
+    id = pnp_read72BitSerialId();
+
+    if (id == 0UL) return 0UL;
+
     /* Assign CSN — card stays awake in config state,
         so we can read its config immediately */
     pnp_writeReg(PNP_REG_CSN, csn);
 
+    DBG("startDeviceEnumeration OK, ID %08lx, CSN %02x\n", id, csn);
+
     return id;
+}
+
+typedef enum { rp_success, rp_error, rp_openBus, rp_endOfData } pnp_ResourcePopulationStatus;
+
+/* Populate resource / capability lists. Returns amount of logical devices that have data. */
+static size_t pnp_populateResources(pnp_DeviceInfo *dev) {
+    size_t itemIndex = 0;
+    bool inDF = false;
+    pnp_ResourceList *currentDF = NULL;
+    pnp_LogicalDeviceInfo *dst;
+    bool firstDevIdParsed = false;
+    size_t logDevIndex = 0;
+
+    L866_NULLCHECK(dev);
+
+    dst = &dev->logDev[logDevIndex];
+    DBG("populateResources %p logdev %p\n", dst);
+
+    while (true) {
+        pnp_Resource cur;
+        bool success = true;
+        
+        memset(&cur, 0, sizeof(pnp_Resource));
+
+        /* Read first byte to get the size flag */
+        if (!pnp_readResourceByte(&cur.raw[0])) return 0;
+
+        if (cur.isLarge) {
+            u16 copySize;
+            /* Large resource, read size */
+            success &= pnp_readResourceStructWithMaxSize(&cur.large.len, sizeof(u16), sizeof(u16));
+            /*  We have the size, read everything else, destination size minus 3 because of the header
+                hacky, but we have to do this for strings which are variable length while we aren't... */
+            copySize = MIN(sizeof(cur.large) - 3, cur.large.len);
+
+            if (cur.large.type == 0x7F && cur.large.len == 0xFFFF) {
+                DBG("Type 0xFF and length 0xFFFF -> No resources on this log dev?\n");
+                return logDevIndex;
+            }
+
+            if (!pnp_readResourceStructWithMaxSize(cur.large.data, copySize, cur.large.len)) {
+                DBG("Large resource read error\n");
+                return logDevIndex;
+            }
+
+            DBG("Resource %02zu: Large Type %u (%u bytes, %u bytes stored)\n", itemIndex, cur.large.type, cur.large.len, copySize);
+        } else {
+            /* Small resource, size is already known */
+            if (!pnp_readResourceStructWithMaxSize(cur.small.data, cur.small.len, cur.small.len)) {
+                DBG("Small resource read error\n");
+                return logDevIndex;
+            }
+            DBG("Resource %02zu: Small Type %u (%u bytes)\n", itemIndex, cur.small.type, cur.small.len);
+        }
+
+        if (!cur.isLarge && cur.small.type == PNP_S_LOG_DEV_ID) {
+            /*  If we have a second logical device id in the first logical device, assume this is the next logical device. 
+                firstDevIdParsed stays true after this point, because this logic is no longer needed. */
+            if (firstDevIdParsed) {
+                if (inDF) {
+                    DBG("WARNING: new log device inside dependent function!\n");
+                    currentDF = NULL;
+                    inDF = false;
+                }
+                /* Next logical device, code below will add the ID resource to it already */
+                DBG("+++++ Logical device %zu END\n", logDevIndex);
+                logDevIndex++;
+                L866_ASSERTM(logDevIndex < 4, "Too many logical devices");
+                dst = &dev->logDev[logDevIndex];
+                DBG("+++++ Logical device %zu START\n", logDevIndex);
+            } else {
+                firstDevIdParsed = true;
+                DBG("+++++ Logical device %zu START\n", logDevIndex);
+            }
+        }
+
+        /* Check for end tag */
+        if (!cur.isLarge && cur.small.type == PNP_S_END_TAG) {
+            DBG("< END OF RESOURCE PARSING: %zu resources parsed >\n", itemIndex);
+            return logDevIndex + 1;
+        }
+
+        /* Handle Dependent Function Start/end */
+        if (!cur.isLarge && cur.small.type == PNP_S_START_DEP) {
+            inDF = true;
+            currentDF = pnp_dependentFunctionListGrow(&dst->dfList);
+            DBG(">>> Dependency Func %zu START\n", dst->dfList.count);
+            continue;
+        }
+
+        if (!cur.isLarge && cur.small.type == PNP_S_END_DEP) {
+            L866_ASSERTM(inDF, "DF End Tag without DF Start");
+            DBG(">>> Dependency Func %zu END\n", dst->dfList.count);
+            currentDF = NULL;
+            inDF = false;
+            continue;
+        }
+
+        /* In Dependency Func? Add this resource there */
+        if (inDF) {
+            L866_NULLCHECK(currentDF);
+            if (!pnp_resourceListAppend(currentDF, &cur)) return logDevIndex;
+        } else {
+            if (!pnp_resourceListAppend(&dst->resources, &cur)) return logDevIndex;
+        }
+
+        itemIndex++;
+    }
+
+    return logDevIndex;
+}
+
+/* Select logical device of currently configuring device and verifies it */
+static bool pnp_switchLogicalDevice(u8 index) {
+    /* switch to this logical device number */
+    pnp_writeReg(PNP_REG_LOGDEV, index);
+    sys_ioDelay(1);
+
+    /* check if switch worked */
+    return index == pnp_readReg(PNP_REG_LOGDEV);
+}
+
+static void pnp_logDevPopulateData(pnp_LogicalDeviceInfo *dst) {
+    u16 j;
+    bool is24 = false;
+    bool is32 = false;
+
+    dst->active = pnp_readReg(PNP_REG_ACTIVATE);
+
+    for (j = 0; j < 4; j++) { /* Read Mem32 */
+        pnp_readStruct(&dst->mem32[j], PNP_REG_MEM32(j), sizeof(pnp_Mem32Cfg));
+        util_swapInPlace32(&dst->mem32[j].base);
+        util_swapInPlace32(&dst->mem32[j].limitRange);
+    }
+
+    for (j = 0; j < 4; j++) { /* Read Mem24 */
+        pnp_readStruct(&dst->mem24[j], PNP_REG_MEM24(j), sizeof(pnp_Mem24Cfg));
+        util_swapInPlace16(&dst->mem24[j].base);
+        util_swapInPlace16(&dst->mem24[j].limitRange);
+    }
+
+    for (j = 0; j < 8; j++) {
+        pnp_readStruct(&dst->io[j], PNP_REG_IO(j), sizeof(pnp_IoCfg));
+        util_swapInPlace16(&dst->io[j].port);
+    }
+
+    for (j = 0; j < 2; j++) {
+        pnp_readStruct(&dst->irq[j], PNP_REG_IRQ(j), sizeof(pnp_IrqCfg));
+    }
+
+    for (j = 0; j < 2; j++) {
+        pnp_readStruct(&dst->dma[j], PNP_REG_DMA(j), sizeof(pnp_DmaCfg));
+    }
+
+    is32 |= dst->mem32[0].base != 0UL;
+    is24 |= dst->mem24[0].base != 0;
+
+    L866_ASSERTM(!(is24 && is32), "Logical device appars to be using 32 AND 24 bit mem descriptors");
+    dst->usesMem32 = is32;
 }
 
 static void pnp_populateDeviceInfo(pnp_DeviceInfo *device, u8 csn, u32 id) {
     pnp_DeviceInfo curdev;
-    u16 logdev;
+    size_t logDevs;
+    size_t i;
+
+    DBG("populateDeviceInfo %p, csn %u, id %lx\n", device, csn, id);
 
     memset(&curdev, 0, sizeof(curdev));
 
@@ -281,53 +552,22 @@ static void pnp_populateDeviceInfo(pnp_DeviceInfo *device, u8 csn, u32 id) {
 
     DBG("Device is: %08lx %s\n", SWAP32(curdev.eisaId.dword), curdev.idStr);
 
-    for (logdev = 0; logdev < 4; logdev++) {
-        pnp_LogicalDeviceInfo *curLogDev = &curdev.logDev[logdev];
-        u16 j;
-        bool is24 = false;
-        bool is32 = false;
+    /*  First we read all the resource data. This is not a guaranteed indicator of logical device count.
+        Separate loop because we cannot activate the LDN here. */
+    curdev.numLogDevs = pnp_populateResources(&curdev);
+    
+    for (i = 0; i < curdev.numLogDevs; i++) {
+        pnp_LogicalDeviceInfo *curLogDev = &curdev.logDev[i];
 
-        pnp_writeReg(PNP_REG_LOGDEV, logdev);
-        sys_ioDelay(1);
-
-        curLogDev->active = pnp_readReg(PNP_REG_ACTIVATE);
-
-        for (j = 0; j < 4; j++) { /* Read Mem32 */
-            pnp_readStruct(&curLogDev->mem32[j], PNP_REG_MEM32(j), sizeof(pnp_Mem32Cfg));
-            util_swapInPlace32(&curLogDev->mem32[j].base);
-            util_swapInPlace32(&curLogDev->mem32[j].limitRange);
+        if (!pnp_switchLogicalDevice(i)) {
+            DBG("Error switching to logical device %zu\n", i);
+            break;
         }
 
-        for (j = 0; j < 4; j++) { /* Read Mem24 */
-            pnp_readStruct(&curLogDev->mem24[j], PNP_REG_MEM24(j), sizeof(pnp_Mem24Cfg));
-            util_swapInPlace16(&curLogDev->mem24[j].base);
-            util_swapInPlace16(&curLogDev->mem24[j].limitRange);
-        }
-
-        for (j = 0; j < 8; j++) {
-            pnp_readStruct(&curLogDev->io[j], PNP_REG_IO(j), sizeof(pnp_IoCfg));
-            util_swapInPlace16(&curLogDev->io[j].port);
-        }
-
-        for (j = 0; j < 2; j++) {
-            pnp_readStruct(&curLogDev->irq[j], PNP_REG_IRQ(j), sizeof(pnp_IrqCfg));
-        }
-
-        for (j = 0; j < 2; j++) {
-            pnp_readStruct(&curLogDev->dma[j], PNP_REG_DMA(j), sizeof(pnp_DmaCfg));
-        }
-
-        is32 |= curLogDev->mem32[0].base != 0UL;
-        is24 |= curLogDev->mem24[0].base != 0;
-
-        L866_ASSERTM(!(is24 && is32), "Logical device appars to be using 32 AND 24 bit mem descriptors");
-        curLogDev->usesMem32 = is32;
-
-        if (curLogDev->active) {
-            curdev.numLogDevs++;
-        }
+        pnp_logDevPopulateData(curLogDev);
     }
 
+    DBG("%u logical devices were parsed\n", curdev.numLogDevs);
     *device = curdev;
 }
 
@@ -344,7 +584,7 @@ size_t pnp_getDeviceData(pnp_DeviceInfo *devices, size_t maxCards) {
 
         if (id == 0UL) break;
 
-        pnp_populateDeviceInfo(&devices[numCards++], csn-1, id);
+        pnp_populateDeviceInfo(&devices[numCards++], csn - 1, id);
         
         pnp_writeReg(PNP_REG_WAKE_CSN, 0x00);  /* wake remaining unassigned */
     }
@@ -372,7 +612,7 @@ bool pnp_getDeviceDataByString(pnp_DeviceInfo *dst, const char *toFind) {
         pnp_decodeEisaId(id, toCompare);
 
         if (util_stringEquals(toCompare, toFind)) {
-            pnp_populateDeviceInfo(dst, csn-1, id.dword);
+            pnp_populateDeviceInfo(dst, csn - 1, id.dword);
             found = true;
             break;
         }
@@ -380,7 +620,7 @@ bool pnp_getDeviceDataByString(pnp_DeviceInfo *dst, const char *toFind) {
         pnp_writeReg(PNP_REG_WAKE_CSN, 0x00);  /* wake remaining unassigned */
     }
 
-    pnp_writeReg(PNP_REG_CONFIG_CTRL, PNP_CTRL_WAIT_KEY );
+    pnp_writeReg(PNP_REG_CONFIG_CTRL, PNP_CTRL_WAIT_KEY);
     return found;
 }
 
@@ -464,4 +704,145 @@ bool pnp_dmaIsActive(pnp_LogicalDeviceInfo *ld, u16 index) {
 u8 pnp_dmaGet(pnp_LogicalDeviceInfo *ld, u16 index) {
     L866_NULLCHECK(ld);
     return ld->dma[index].ch;
+}
+
+static pnp_Resource *pnp_getResourceByIndex(pnp_ResourceList *rl, size_t index) {
+    return &rl->items[index];
+}
+
+static size_t pnp_getResourceCountByTag(pnp_ResourceList *rl, bool isLarge, u8 type) {
+    size_t i;
+    size_t matches = 0;
+    L866_NULLCHECK(rl);
+    for (i = 0; i < rl->count; i++) {
+        pnp_Resource *cur = pnp_getResourceByIndex(rl, i);
+
+        if (isLarge && cur->isLarge && cur->large.type == type) matches++;
+        if (!isLarge && !cur->isLarge && cur->small.type == type) matches++;
+    }
+    return matches;
+}
+
+static pnp_Resource *pnp_getResourceByTag(pnp_ResourceList *rl, bool isLarge, u8 type, size_t index, size_t *totalCount) {
+    size_t i;
+    size_t leftBeforeRet = index;
+    L866_NULLCHECK(rl);
+
+    if (totalCount != NULL) *totalCount = pnp_getResourceCountByTag(rl, isLarge, type);
+
+    for (i = 0; i < rl->count; i++) {
+        pnp_Resource *cur = pnp_getResourceByIndex(rl, i);
+
+        if (isLarge && cur->isLarge && cur->large.type == type)  {
+            if (leftBeforeRet == 0) return cur;
+            leftBeforeRet--;
+        }
+
+        if (!isLarge && !cur->isLarge && cur->small.type == type) {
+            if (leftBeforeRet == 0) return cur;
+            leftBeforeRet--;
+        }
+
+    }
+
+    DBG("Resource type %u index %zu not found\n", type, index);
+    return NULL;
+}
+
+pnp_Resource *pnp_resIrq(pnp_ResourceList *rl, size_t index, size_t *totalCount) {
+    pnp_Resource *ret = pnp_getResourceByTag(rl, false, PNP_S_IRQ, index, totalCount);
+    return ret;
+}
+
+pnp_Resource *pnp_resIoFixed(pnp_ResourceList *rl, size_t index, size_t *totalCount) {
+    pnp_Resource *ret = pnp_getResourceByTag(rl, false, PNP_S_IO_FIXED, index, totalCount);
+    return ret;
+}
+
+pnp_Resource *pnp_resIoRange(pnp_ResourceList *rl, size_t index, size_t *totalCount) {
+    pnp_Resource *ret = pnp_getResourceByTag(rl, false, PNP_S_IO, index, totalCount);
+    return ret;
+}
+
+pnp_Resource *pnp_resDma(pnp_ResourceList *rl, size_t index, size_t *totalCount) {
+    pnp_Resource *ret = pnp_getResourceByTag(rl, false, PNP_S_DMA, index, totalCount);
+    return ret;
+}
+
+bool pnp_resString(pnp_ResourceList *rl, char *buf) {
+    pnp_Resource *strRes = pnp_getResourceByTag(rl, true, PNP_L_ANSI_ID, 0, NULL);
+    size_t len = 0;
+
+    L866_NULLCHECK(buf);
+    L866_NULLCHECK(rl);
+
+    if (strRes == NULL) return false;
+
+    len = MIN(PNP_MAX_STRING_LENGTH, strRes->large.len);
+    memcpy(buf, strRes->large.str.data, len);
+    buf[len] = 0x00;
+    return true;
+}
+
+bool pnp_getSupportedIRQsFromDFs(DynU16 *dst, pnp_LogicalDeviceInfo *ld, size_t index) {
+    size_t dfIdx;
+    L866_NULLCHECK(dst);
+    dst->count = 0;
+    /*  Get all possible values for all Dependency Functions (== config/capability variants)
+        But only the <index>'th resource of this type */
+    for (dfIdx = 0; dfIdx < ld->dfList.count; dfIdx++) {
+        pnp_Resource *res = pnp_resIrq(&ld->dfList.funcs[dfIdx], index, NULL);
+        u16 i;
+        if (res == NULL) continue;
+        for (i = 0; i < 16; i++) {
+            if (res->small.irq.mask & BIT(i)) {
+                if (!util_dynU16Add(dst, i)) return false;
+            }
+        }
+    }
+
+    util_dynU16Sort(dst);
+    util_dynU16RemoveDuplicates(dst);
+    return true;
+}
+
+bool pnp_getSupportedIORangeBasesFromDFs(DynU16 *dst, pnp_LogicalDeviceInfo *ld, size_t index) {
+    size_t dfIdx;
+    L866_NULLCHECK(dst);
+    dst->count = 0;
+    /*  Get all possible values for all Dependency Functions (== config/capability variants)
+        But only the <index>'th resource of this type */
+    for (dfIdx = 0; dfIdx < ld->dfList.count; dfIdx++) {
+        pnp_Resource *res = pnp_resIoRange(&ld->dfList.funcs[dfIdx], index, NULL);
+        u16 base = res->small.ioRange.baseMin;
+        if (res == NULL) continue;
+        while (base <= res->small.ioRange.baseMax) {
+            if (!util_dynU16Add(dst, base)) return false;
+            base += res->small.ioRange.align;
+        }
+    }
+    util_dynU16Sort(dst);
+    util_dynU16RemoveDuplicates(dst);
+    return true;
+}
+
+bool pnp_getSupportedDMAsFromDFs(DynU16 *dst, pnp_LogicalDeviceInfo *ld, size_t index) {
+    size_t dfIdx;
+    L866_NULLCHECK(dst);
+    dst->count = 0;
+    /*  Get all possible values for all Dependency Functions (== config/capability variants)
+        But only the <index>'th resource of this type */
+    for (dfIdx = 0; dfIdx < ld->dfList.count; dfIdx++) {
+        pnp_Resource *res = pnp_resDma(&ld->dfList.funcs[dfIdx], index, NULL);
+        u16 i;
+        if (res == NULL) continue;
+        for (i = 0; i < 8; i++) {
+            if (res->small.dma.mask & BIT(i)) {
+                if (!util_dynU16Add(dst, i)) return false;
+            }
+        }
+    }
+    util_dynU16Sort(dst);
+    util_dynU16RemoveDuplicates(dst);
+    return true;
 }
