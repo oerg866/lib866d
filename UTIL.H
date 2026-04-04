@@ -8,6 +8,7 @@
 #define _UTIL_H_
 
 #include <stddef.h>
+#include <i86.h>
 #include "types.h"
 
 #ifndef MK_FP
@@ -41,6 +42,12 @@ typedef struct {
     u8 bgColor;
 } util_ApplicationLogo;
 
+typedef struct {
+    size_t  count;
+    size_t  capacity;
+    u16    *items;
+} DynU16;
+
 bool util_stringEquals(const char *str1, const char *str2);
 bool util_stringStartsWith(const char *full, const char *toCheck);
 void util_stringReplaceChar(char *str, char oldChar, char newChar);
@@ -67,5 +74,19 @@ void util_sleep(u32 milliseconds);
 u32 util_msToClocks(u32 milliseconds);
 /* Gets the clock() count value that corresponds to current time + <milliseconds> */
 u32 util_getTimeOffsetInClocks(u32 milliseconds);
+
+/*  Add value to a dynamic U16 array */
+bool util_dynU16Add(DynU16 *arr, u16 val);
+/*  Check if U16 array contains a value.
+    <index> is optional and will receive the index of the first matching  element */
+bool util_dynU16Contains(const DynU16 *arr, u16 val, size_t *index);
+/*  Remove value from DynU16 array */
+void util_dynU16Remove(DynU16 *arr, size_t index);
+/*  Sort the DynU16 array */
+void util_dynU16Sort(DynU16 *arr);
+/*  Remove all duplicates from the DynU16 array */
+void util_dynU16RemoveDuplicates(DynU16 *arr);
+/*  Release the memory allocated by the DynU16 array */
+void util_dynU16Free(DynU16 *arr);
 
 #endif

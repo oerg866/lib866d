@@ -123,3 +123,79 @@ u32 util_msToClocks(u32 milliseconds) {
 u32 util_getTimeOffsetInClocks(u32 milliseconds) {
     return clock() + util_msToClocks(milliseconds);
 }
+
+static inline bool util_dynU16Grow(DynU16 *arr) {
+    arr->capacity = (arr->capacity == 0) ? 8 : (arr->capacity * 2);
+    arr->items = realloc(arr->items, arr->capacity);
+    return arr->items != NULL;
+}
+
+bool util_dynU16Add(DynU16 *arr, u16 val) {
+    L866_NULLCHECK(arr);
+
+    if ((arr->count == arr->capacity) && !util_dynU16Grow(arr)) return false;
+    arr->items[arr->count++] = val;
+    return true;;
+}
+
+bool util_dynU16Contains(const DynU16 *arr, u16 val, size_t *index) {
+    size_t i;
+    L866_NULLCHECK(arr);
+    for (i = 0 ; i < arr->count; i++) {
+        if (arr->items[i] == val) {
+            if (index != NULL) *index = i;
+            return true;
+        }
+    }
+    return false;
+}
+
+void util_dynU16Remove(DynU16 *arr, size_t index) {
+    L866_NULLCHECK(arr);
+    L866_ASSERT(index < arr->count);
+    memmove(&arr->items[index], &arr->items[index + 1], (arr->count - (index + 1)) * sizeof(u16));
+    arr->count--;
+}
+
+static int compareU16(const void *a, const void *b) {
+    u16 arg1 = *(const u16 *)a;
+    u16 arg2 = *(const u16 *)b;
+
+    if (arg1 < arg2) return -1;
+    if (arg1 > arg2) return 1;
+    return 0;
+}
+
+
+void util_dynU16Sort(DynU16 *arr) {
+    L866_NULLCHECK(arr);
+    if (arr->count <= 1) {
+        return; // No need to sort if there are 0 or 1 elements
+    }
+    qsort(arr->items, arr->count, sizeof(u16), compareU16);
+}
+
+void util_dynU16RemoveDuplicates(DynU16 *arr) {
+    size_t i, j;
+    L866_NULLCHECK(arr);
+
+    for (i = 0; i < arr->count; i++) {
+        for (j = i + 1; j < arr->count; ) {
+            if (arr->items[j] == arr->items[i]) {
+                util_dynU16Remove(arr, j);
+            } else {
+                j++;
+            }
+        }
+    }
+}
+
+void util_dynU16Free(DynU16 *arr) {
+    L866_NULLCHECK(arr);
+    if (arr->items != NULL) {
+        free(arr->items);
+        arr->items = NULL;
+        arr->count = 0;
+        arr->capacity = 0;
+    }
+}
