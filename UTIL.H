@@ -33,6 +33,8 @@
 
 #define BIT(x)      (1 << (x))
 #define BIT32(x)    (1UL << (x))
+/* Set bit<idx> in <x> if <val> evaluates to TRUE */
+#define BIT_SET(x, idx, val)  ((val) ? (x | BIT(idx)) : (x & ~BIT(idx)))
 
 typedef struct {
     const char *logoData;
