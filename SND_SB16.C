@@ -180,7 +180,8 @@ static inline void advancePlayback(void) {
     /* Next buffer needs to be filled by user! */
     if (userCallback != NULL) {
         u8 _huge *nextPtr = ((u8 _huge *) dmaBuffer.aligned);
-        DBG("advancePlayback buf %u cb %lp buf %lp\n", bufferIndex, userCallback, nextPtr);
+        //not safe from isr context
+        //DBG("advancePlayback buf %u cb %lp buf %lp\n", bufferIndex, userCallback, nextPtr);
         if (bufferIndex) nextPtr += ((u32) SB16_BUFFER_SLICE_SIZE);
         userCallback(nextPtr, SB16_BUFFER_SLICE_SIZE);
     }
