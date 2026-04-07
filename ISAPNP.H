@@ -265,9 +265,12 @@ typedef struct {
     u8                      numLogDevs;
 } pnp_DeviceInfo;
 
-
+typedef enum {
+    pnp_svpIORange = 0,
+    pnp_svpIRQ,
+    pnp_svpDMA,
+} pnp_SupportedValueType;
 #pragma pack()
-
 
 /*  Detect ISA PnP BIOS. True if found, False if not.
     Info will contain the header structure if successful. */
@@ -333,6 +336,10 @@ bool pnp_getSupportedIORangeBasesFromDFs(DynU16 *dst, pnp_LogicalDeviceInfo *ld,
 /*  Fills a dynamic u16 array with all possible values for the DMA[index] resouce calculated from
     ALL DEPENDENT FUNCTIONS of the given logical device. */
 bool pnp_getSupportedDMAsFromDFs(DynU16 *dst, pnp_LogicalDeviceInfo *ld, size_t index);
+/*  Fills a dynamic u16 array with all possible values for the <type>[index] resouce calculated from
+    ALL DEPENDENT FUNCTIONS of the given logical device.
+    Supports the types above and calls those functions depending on that */
+bool pnp_getSupportedResourceValuesFromDFsByType(DynU16 *dst, pnp_LogicalDeviceInfo *ld, pnp_SupportedValueType type, size_t index);
 
 #endif
 

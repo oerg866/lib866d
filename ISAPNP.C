@@ -627,6 +627,7 @@ bool pnp_getDeviceDataByString(pnp_DeviceInfo *dst, const char *toFind) {
 
 pnp_LogicalDeviceInfo *pnp_getLogicalDevice(pnp_DeviceInfo *dst, u16 index) {
     L866_NULLCHECK(dst);
+
     if (index >= dst->numLogDevs) return NULL;
 
     return &dst->logDev[index];
@@ -731,6 +732,8 @@ static pnp_Resource *pnp_getResourceByTag(pnp_ResourceList *rl, bool isLarge, u8
 
     if (totalCount != NULL) *totalCount = pnp_getResourceCountByTag(rl, isLarge, type);
 
+    DBG("getResourceByTag: Resource list count: %u\n", rl->count);
+
     for (i = 0; i < rl->count; i++) {
         pnp_Resource *cur = pnp_getResourceByIndex(rl, i);
 
@@ -817,9 +820,12 @@ bool pnp_getSupportedIORangeBasesFromDFs(DynU16 *dst, pnp_LogicalDeviceInfo *ld,
         pnp_Resource *res = pnp_resIoRange(&ld->dfList.funcs[dfIdx], index, NULL);
         u16 base = res->small.ioRange.baseMin;
         if (res == NULL) continue;
+        DBG("DependentFunc %u processing range %04x-%04x align %x\n", dfIdx, res->small.ioRange.baseMin, res->small.ioRange.baseMax, res->small.ioRange.align);
+
         while (base <= res->small.ioRange.baseMax) {
+            DBG("DF %u Range valid base %04x\n", dfIdx, base);
             if (!util_dynU16Add(dst, base)) {
-                DBG("fail\n");
+                DBG("Failed to add, count = %u\n", dst->count);
                 return false;
             }
             base += res->small.ioRange.align;
@@ -828,6 +834,7 @@ bool pnp_getSupportedIORangeBasesFromDFs(DynU16 *dst, pnp_LogicalDeviceInfo *ld,
     DBG("before sort: %u\n", dst->count);
     util_dynU16Sort(dst);
     DBG("before dedupe: %u\n", dst->count);
+    util_dynU16Deduplicate(dst);
     DBG("finished: %u\n", dst->count);
     return true;
 }
@@ -851,4 +858,19 @@ bool pnp_getSupportedDMAsFromDFs(DynU16 *dst, pnp_LogicalDeviceInfo *ld, size_t 
     util_dynU16Sort(dst);
     util_dynU16Deduplicate(dst);
     return true;
+}
+
+bool pnp_getSupportedResourceValuesFromDFsByType(DynU16 *dst, pnp_LogicalDeviceInfo *ld, pnp_SupportedValueType type, size_t index) {
+    L866_NULLCHECK(dst);
+    L866_NULLCHECK(ld);
+    
+    DBG("getSupportedResourceValuesFromDFsByType type %u index %u\n", (u16) type, (u16) index);
+    
+    switch (type) {
+        case pnp_svpIORange:    return pnp_getSupportedIORangeBasesFromDFs(dst, ld, index);
+        case pnp_svpIRQ:        return pnp_getSupportedIRQsFromDFs(dst, ld, index);
+        case pnp_svpDMA:        return pnp_getSupportedDMAsFromDFs(dst, ld, index);
+        default:                return false;
+    }
+    return false;
 }
