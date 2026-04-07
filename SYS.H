@@ -134,5 +134,7 @@ sys_osWindowsMode sys_getWindowsMode(void);
 bool sys_allocateDMABuffer(sys_DMABuffer *buf, u32 size);
 /*  Frees DMA buffer.*/
 void sys_freeDMABuffer(sys_DMABuffer *buf);
+/*  Checks if drive with given letter is remote (i.e. network, SUBST, CD, etc.) */
+bool sys_driveIsRemote(char letter);
 
 #endif

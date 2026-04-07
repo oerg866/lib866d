@@ -585,3 +585,32 @@ void sys_freeDMABuffer(sys_DMABuffer *buf) {
         buf->rawSize     = 0;
     }
 }
+
+bool sys_driveIsRemote(char letter) {
+    /*  INT 21H AX=4409H: CHECK IF BLOCK DEVICE REMOTE
+        BL = drive number (00h = default, 01h = A:, etc)
+        Return: CF clear if successful
+                DX = device attribute word */
+    char drive = isupper(letter) ? letter - 'A' + 1 : letter - 'a' + 1;
+    u8 error = 0;
+    u16 attr = 0;
+
+    _asm {
+        mov ax, 0x4409
+        mov bl, drive
+        int 0x21
+        jnc noErr
+        mov error, 1
+_ASM_LBL_(noErr)
+        mov attr, dx
+    };
+
+    DBG("driveIsRemote INT 0x21 AX=4409 BL=%u %u %04x\n", (u16) drive, error, attr);
+
+    if (error) return false;
+
+    /* Bit 15 (SUBST), bit 12 (Remote) */
+    if (attr & BIT(15) || attr & BIT(12)) return true;
+
+    return false;
+}
