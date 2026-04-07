@@ -213,24 +213,27 @@ bool sb16_init(u16 io, u16 irq, u16 dmaL, u16 dmaH) {
 
     L866_ASSERTM(initialized == false, "SB16 component already initialized!");
 
+    DBG("sb16_init start A%03x I%u D%u H%u\n", io, irq, dmaL, dmaH);
+
     if (!dspReset(io)) return false;
 
     DBG("DSP init ok\n");
 
     success &= sys_allocateDMABuffer(&dmaBuffer, SB16_BUFFER_SIZE);
-    DBG("buf: %lp aligned %lp\n", dmaBuffer.rawPtr, dmaBuffer.aligned);
+    DBG("Alloc SB16 DMA buf (%s) buf: %lp aligned %lp\n", success ? "ok" : "fail", dmaBuffer.rawPtr, dmaBuffer.aligned);
 
     /* Save previous IRQ/ISR state */
     oldIrqState = pic_irqIsEnabled(irq);
     oldISR = _dos_getvect(irqVector);
     
-    initialized = true;
 
     if (!success) {
         sb16_deinit();
         return false;
     }
     
+    initialized = true;
+
     sbIrq = irq;
     sbPort = io;
     sbDmaL = dmaL;
@@ -266,6 +269,7 @@ void sb16_deinit() {
 
         /* Restore ISR for this irq */
         _dos_setvect(pic_getVectorNumberForIRQ(sbIrq), oldISR);
+        initialized = false;
     }
 }
 
@@ -325,6 +329,8 @@ bool sb16_startPlayback16(u16 io, bool stereo, u16 rate, SB16_DMACallback cb) {
     /* Set IRQ */
     L866_ASSERTM(sbIrq < 16, "Invalid IRQ");
     irqBit = irqBitLookup[sbIrq];
+
+    DBG("sb16_startPlayback16: Buffer aligned %lp\n", dmaBuffer.aligned);
 
     /* Prepare buffer */
     _fmemset(dmaBuffer.aligned, 0, (size_t)SB16_BUFFER_SIZE);
