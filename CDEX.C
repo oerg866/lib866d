@@ -449,7 +449,7 @@ u8 cda_getFirstAudioTrack(const cda_TOC *toc) {
 
 const cda_TrackEntry *cda_tocGetTrack(const cda_TOC *toc, u8 track) {
     L866_NULLCHECK(toc);
-    if (track >= toc->trackCount) return false;
+    if (track >= toc->trackCount) return NULL;
     return &toc->tracks[track];
 }
 

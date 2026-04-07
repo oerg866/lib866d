@@ -124,13 +124,7 @@ u32 util_getTimeOffsetInClocks(u32 milliseconds) {
     return clock() + util_msToClocks(milliseconds);
 }
 
-static inline bool util_dynU16Grow(DynU16 *arr) {
-    arr->capacity = (arr->capacity == 0) ? 8 : (arr->capacity * 2);
-    arr->items = realloc(arr->items, arr->capacity);
-    return arr->items != NULL;
-}
-
-bool util_dynU16Add(DynU16 *arr, u16 val) {
+static _inline bool util_dynU16Grow(DynU16 *arr) {
     L866_NULLCHECK(arr);
 
     if ((arr->count == arr->capacity) && !util_dynU16Grow(arr)) return false;
