@@ -8,7 +8,7 @@
 #define _UTIL_H_
 
 #include <stddef.h>
-#include <i86.h>
+#include <dos.h>
 #include "types.h"
 
 #ifndef MK_FP
@@ -32,6 +32,7 @@
                           (((x) << 24) & 0xFF000000UL))
 
 #define BIT(x)      (1 << (x))
+#define BIT8(x)     ((u8)BIT(x))
 #define BIT32(x)    (1UL << (x))
 /* Set bit<idx> in <x> if <val> evaluates to TRUE */
 #define BIT_SET(x, idx, val)  ((val) ? (x | BIT(idx)) : (x & ~BIT(idx)))

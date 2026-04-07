@@ -80,7 +80,7 @@ typedef enum {
 } sys_osWindowsMode;
 
 /* Generic typedef for an interrupt service routine */
-typedef void (_interrupt _far * sys_ISR)(void);
+typedef void (cdecl _interrupt _far * cdecl sys_ISR)();
 
 /*  Attempts to figure out memory size using BIOS functions.
     hasMemoryHole is optional ('true' will be written here if a 15M memory hole is found.)

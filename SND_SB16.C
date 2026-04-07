@@ -174,7 +174,7 @@ static bool setRate(u16 io, u16 rate) {
         && dspCmd(io, (u8)(rate & 0xFF));
 }
 
-static inline void advancePlayback(void) {
+static _inline void advancePlayback(void) {
     bufferIndex = bufferIndex ? 0 : 1;
 
     /* Next buffer needs to be filled by user! */
@@ -327,7 +327,7 @@ bool sb16_startPlayback16(u16 io, bool stereo, u16 rate, SB16_DMACallback cb) {
     irqBit = irqBitLookup[sbIrq];
 
     /* Prepare buffer */
-    _fmemset(dmaBuffer.aligned, 0, SB16_BUFFER_SIZE);
+    _fmemset(dmaBuffer.aligned, 0, (size_t)SB16_BUFFER_SIZE);
     bufferIndex = 0;
 
     /* Initial call to the callback to fill the buffer at the start */
@@ -350,11 +350,11 @@ bool sb16_startPlayback16(u16 io, bool stereo, u16 rate, SB16_DMACallback cb) {
     L866_ASSERTM(irqBit != 0x00, "Invalid IRQ");
     L866_ASSERTM(playbackDma != 0x04, "Invalid DMA");
     mixerWrite(io, mr_Irq, irqBit);
-    mixerWrite(io, mr_Dma, BIT(playbackDma));
+    mixerWrite(io, mr_Dma, BIT8(playbackDma));
     DBG("mixer irq %02x dma %02x\n", irqBit, BIT(playbackDma));
 
     /* Program the DMA */
-    dma_dmaSetParams(playbackDma, dmaBuffer.aligned, SB16_BUFFER_SIZE);
+    dma_dmaSetParams(playbackDma, dmaBuffer.aligned, (u16)SB16_BUFFER_SIZE);
 
     /* Start the stream */
     DBG("16bit pb start FMT %02x halfsize %02x\n", fmt.raw, playbackHalfSize);

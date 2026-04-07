@@ -118,7 +118,7 @@ static u16 dma_maskPort      (u16 ch) { return IS16BIT(ch) ? DMA16_MASK_REG : DM
 static u16 dma_flipflopPort  (u16 ch) { return IS16BIT(ch) ? DMA16_FLIPFLOP_REG : DMA8_FLIPFLOP_REG; }
 static u16 dma_modePort      (u16 ch) { return IS16BIT(ch) ? DMA16_MODE_REG : DMA8_MODE_REG; }
 
-static inline u16 dma_channelIndex(u16 channel) { return channel & 0x03; }
+static _inline u16 dma_channelIndex(u16 channel) { return channel & 0x03; }
 
 void dma_dmaDisable(u16 channel) {
     /* bit2=1 masks the channel */  

@@ -104,6 +104,7 @@ static const rtcRateEntry *findBestRate(u16 target) {
 u16 timer_start(u16 desiredFrequency, timer_Callback cb) {
     const rtcRateEntry *best;
     u8 status;
+    u8 statusBOut;
     u16 vec;
 
     L866_NULLCHECK(cb);
@@ -126,7 +127,8 @@ u16 timer_start(u16 desiredFrequency, timer_Callback cb) {
 
     /* Enable periodic interrupt in Status B */
     savedStatusB = cmosRead(REG_STATUS_B);
-    cmosWrite(REG_STATUS_B, savedStatusB | PIE_BIT);
+    statusBOut = savedStatusB | PIE_BIT;
+    cmosWrite(REG_STATUS_B, statusBOut);
 
     /* Set rate in Status A (preserve oscillator bits 7:4) */
     status = cmosRead(REG_STATUS_A);

@@ -171,10 +171,10 @@ typedef struct {
     };
 } cdrom_CdexRequest;
 
-#pragma pack(pop)
+#pragma pack()
 
 /* Converts a drive letter to unit index expected by CDEX request */
-static inline u16 letterToIndex(char letter) { return tolower(letter) - 'a'; }
+static _inline u16 letterToIndex(char letter) { return tolower(letter) - 'a'; }
 
 /* Checks if the given letter is a drive handled by CDEX */
 static bool driveIsCdexDrive(char letter) {
@@ -230,8 +230,8 @@ static cda_MSF calculateDistance(cda_MSF from, cda_MSF to) {
 }
 
 /* Helper functions for High Sierra position info conversion */
-static inline u32       msfToHSG(cda_MSF m) { return cda_msfToFrames(m) - 150UL; }
-static inline cda_MSF   hsgToMSF(u32 hsg)   { return cda_framesToMSF(hsg + 150UL); }
+static _inline u32       msfToHSG(cda_MSF m) { return cda_msfToFrames(m) - 150UL; }
+static _inline cda_MSF   hsgToMSF(u32 hsg)   { return cda_framesToMSF(hsg + 150UL); }
 
 /*  Get value for transfer size field of Input or Output IOCTL
     returns U16_MAX if invalid */
@@ -273,9 +273,10 @@ static u16 getIoctlTransferSize(u8 ioctlCmd, cdrom_CdexRequestCmd requestCmd) {
 
 /*  Sends a request to the CDEX. */
 static bool cdexRequest(char letter, cdrom_CdexRequest *req) {
+    cdrom_CdexRequest _far *fReq = (cdrom_CdexRequest _far *) req;
+    u16 reqSegment = FP_SEG(fReq);
+    u16 reqOffset = FP_OFF(fReq);
     u16 index = letterToIndex(letter);
-    u16 reqSegment = FP_SEG((void _far *)(req));
-    u16 reqOffset = FP_OFF((void _far *)(req));
     u16 error = 0;
 
     req->length = sizeof(cdrom_CdexRequest);
@@ -324,10 +325,10 @@ static bool cdexIoctl(char letter, cdrom_Ioctl *ctl, cdrom_CdexRequestCmd reques
 }
 
 /* Quick aliases for Input/Output IOCTLs */
-static inline bool cdexIoctlIn (char letter, cdrom_Ioctl *ctl, cdrom_CdexRequestStatus *statusCode) { 
+static _inline bool cdexIoctlIn (char letter, cdrom_Ioctl *ctl, cdrom_CdexRequestStatus *statusCode) { 
     return cdexIoctl(letter, ctl, r_ioctlIn, statusCode); 
 }
-static inline bool cdexIoctlOut(char letter, cdrom_Ioctl *ctl, cdrom_CdexRequestStatus *statusCode) { 
+static _inline bool cdexIoctlOut(char letter, cdrom_Ioctl *ctl, cdrom_CdexRequestStatus *statusCode) { 
     return cdexIoctl(letter, ctl, r_ioctlOut, statusCode); 
 }
 

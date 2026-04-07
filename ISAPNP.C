@@ -9,7 +9,6 @@
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
-#include <i86.h>
 #include <dos.h>
 #include <conio.h>
 
@@ -115,17 +114,17 @@ bool pnp_biosDetect(pnp_BiosInfo *info) {
 #define PNP_REG_LOGDEV          0x07   /* Logical Device Select        */
 #define PNP_REG_ACTIVATE        0x30   /* 1 = activate logical dev     */
 #define PNP_REG_MEM24_0         0x40   /* Mem24 base start         */
-#define PNP_REG_MEM24(x)        (PNP_REG_MEM24_0 + 8 * (x))
+#define PNP_REG_MEM24(x)        ((u8)(PNP_REG_MEM24_0 + 8 * (x)))
 #define PNP_REG_MEM32_0         0x76
-#define PNP_REG_MEM32(x)        ((x) == 0 ? PNP_REG_MEM32_0 : (0x80 + 16 * (x)))
+#define PNP_REG_MEM32(x)        ((u8)((x) == 0 ? PNP_REG_MEM32_0 : (0x80 + 16 * (x))))
 #define PNP_REG_IO0_HI          0x60   /* IO descriptor 0 base high    */
 #define PNP_REG_IO0_LO          0x61   /* IO descriptor 0 base low     */
-#define PNP_REG_IO(x)           (PNP_REG_IO0_HI + (2*(x))) /* x range 0 - 7*/
+#define PNP_REG_IO(x)           ((u8)(PNP_REG_IO0_HI + (2*(x)))) /* x range 0 - 7*/
 #define PNP_REG_IRQ0_NUM        0x70   /* IRQ 0 number                 */
 #define PNP_REG_IRQ0_TYPE       0x71   /* IRQ 0 type                   */
-#define PNP_REG_IRQ(x)          (PNP_REG_IRQ0_NUM + (2 * (x))) /* x range 0 - 1 */
+#define PNP_REG_IRQ(x)          ((u8)(PNP_REG_IRQ0_NUM + (2 * (x)))) /* x range 0 - 1 */
 #define PNP_REG_DMA0            0x74   /* DMA channel 0                */
-#define PNP_REG_DMA(x)          (PNP_REG_DMA0 + (x))    /* x range 0 - 1 */
+#define PNP_REG_DMA(x)          ((u8)(PNP_REG_DMA0 + (x)))    /* x range 0 - 1 */
 
 
 #define PNP_S_PNP_VER       0x01
@@ -439,20 +438,20 @@ static size_t pnp_populateResources(pnp_DeviceInfo *dev) {
                     inDF = false;
                 }
                 /* Next logical device, code below will add the ID resource to it already */
-                DBG("+++++ Logical device %zu END\n", logDevIndex);
+                DBG("+++++ Logical device %u END\n", logDevIndex);
                 logDevIndex++;
                 L866_ASSERTM(logDevIndex < 4, "Too many logical devices");
                 dst = &dev->logDev[logDevIndex];
-                DBG("+++++ Logical device %zu START\n", logDevIndex);
+                DBG("+++++ Logical device %u START\n", logDevIndex);
             } else {
                 firstDevIdParsed = true;
-                DBG("+++++ Logical device %zu START\n", logDevIndex);
+                DBG("+++++ Logical device %u START\n", logDevIndex);
             }
         }
 
         /* Check for end tag */
         if (!cur.isLarge && cur.small.type == PNP_S_END_TAG) {
-            DBG("< END OF RESOURCE PARSING: %zu resources parsed >\n", itemIndex);
+            DBG("< END OF RESOURCE PARSING: %u resources parsed >\n", itemIndex);
             return logDevIndex + 1;
         }
 
@@ -460,13 +459,13 @@ static size_t pnp_populateResources(pnp_DeviceInfo *dev) {
         if (!cur.isLarge && cur.small.type == PNP_S_START_DEP) {
             inDF = true;
             currentDF = pnp_dependentFunctionListGrow(&dst->dfList);
-            DBG(">>> Dependency Func %zu START\n", dst->dfList.count);
+            DBG(">>> Dependency Func %u START\n", dst->dfList.count);
             continue;
         }
 
         if (!cur.isLarge && cur.small.type == PNP_S_END_DEP) {
             L866_ASSERTM(inDF, "DF End Tag without DF Start");
-            DBG(">>> Dependency Func %zu END\n", dst->dfList.count);
+            DBG(">>> Dependency Func %u END\n", dst->dfList.count);
             currentDF = NULL;
             inDF = false;
             continue;
@@ -487,9 +486,11 @@ static size_t pnp_populateResources(pnp_DeviceInfo *dev) {
 }
 
 /* Select logical device of currently configuring device and verifies it */
-static bool pnp_switchLogicalDevice(u8 index) {
+static bool pnp_switchLogicalDevice(size_t index) {
+    if (index >= 4) return false;
+
     /* switch to this logical device number */
-    pnp_writeReg(PNP_REG_LOGDEV, index);
+    pnp_writeReg(PNP_REG_LOGDEV, (u8) index);
     sys_ioDelay(1);
 
     /* check if switch worked */
@@ -560,7 +561,7 @@ static void pnp_populateDeviceInfo(pnp_DeviceInfo *device, u8 csn, u32 id) {
         pnp_LogicalDeviceInfo *curLogDev = &curdev.logDev[i];
 
         if (!pnp_switchLogicalDevice(i)) {
-            DBG("Error switching to logical device %zu\n", i);
+            DBG("Error switching to logical device %u\n", i);
             break;
         }
 
@@ -584,7 +585,7 @@ size_t pnp_getDeviceData(pnp_DeviceInfo *devices, size_t maxCards) {
 
         if (id == 0UL) break;
 
-        pnp_populateDeviceInfo(&devices[numCards++], csn - 1, id);
+        pnp_populateDeviceInfo(&devices[numCards++], (u8) (csn - 1), id);
         
         pnp_writeReg(PNP_REG_WAKE_CSN, 0x00);  /* wake remaining unassigned */
     }
@@ -612,7 +613,7 @@ bool pnp_getDeviceDataByString(pnp_DeviceInfo *dst, const char *toFind) {
         pnp_decodeEisaId(id, toCompare);
 
         if (util_stringEquals(toCompare, toFind)) {
-            pnp_populateDeviceInfo(dst, csn - 1, id.dword);
+            pnp_populateDeviceInfo(dst, (u8) (csn - 1), id.dword);
             found = true;
             break;
         }
@@ -745,7 +746,7 @@ static pnp_Resource *pnp_getResourceByTag(pnp_ResourceList *rl, bool isLarge, u8
 
     }
 
-    DBG("Resource type %u index %zu not found\n", type, index);
+    DBG("Resource type %u index %u not found\n", type, index);
     return NULL;
 }
 
@@ -802,7 +803,7 @@ bool pnp_getSupportedIRQsFromDFs(DynU16 *dst, pnp_LogicalDeviceInfo *ld, size_t 
     }
 
     util_dynU16Sort(dst);
-    util_dynU16RemoveDuplicates(dst);
+    util_dynU16Deduplicate(dst);
     return true;
 }
 
@@ -817,12 +818,17 @@ bool pnp_getSupportedIORangeBasesFromDFs(DynU16 *dst, pnp_LogicalDeviceInfo *ld,
         u16 base = res->small.ioRange.baseMin;
         if (res == NULL) continue;
         while (base <= res->small.ioRange.baseMax) {
-            if (!util_dynU16Add(dst, base)) return false;
+            if (!util_dynU16Add(dst, base)) {
+                DBG("fail\n");
+                return false;
+            }
             base += res->small.ioRange.align;
         }
     }
+    DBG("before sort: %u\n", dst->count);
     util_dynU16Sort(dst);
-    util_dynU16RemoveDuplicates(dst);
+    DBG("before dedupe: %u\n", dst->count);
+    DBG("finished: %u\n", dst->count);
     return true;
 }
 
@@ -843,6 +849,6 @@ bool pnp_getSupportedDMAsFromDFs(DynU16 *dst, pnp_LogicalDeviceInfo *ld, size_t 
         }
     }
     util_dynU16Sort(dst);
-    util_dynU16RemoveDuplicates(dst);
+    util_dynU16Deduplicate(dst);
     return true;
 }

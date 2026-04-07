@@ -19,8 +19,16 @@ typedef signed   char  s8;  // compatibility
 typedef signed   short s16; // compatibility
 typedef signed   long  s32; // compatibility
 
+#if defined(_MSC_VER) && (_MSC_VER > 700) && !defined(SUPER_STRICT)
+/* This annoying warning pops up all the time */
+#pragma warning(disable: 4761) /* MS C: integral size mismatch in argument */
+#endif
+
 #if defined(__BORLANDC__) || defined(__TURBOC__) || defined(_MSC_VER)
-typedef enum { false, true } bool;
+#if !defined(bool)
+typedef enum { false, true } _myBool;
+#define bool _myBool
+#endif
 #else
 #include <stdbool.h>
 #endif

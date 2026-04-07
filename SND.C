@@ -22,13 +22,13 @@ static u16 getBitMask(u8 bitIdx, u8 width) {
     return ret;
 }
 
-static inline void insertBits(u8 *dst, u8 bitIdx, u8 width, u8 value) {
+static _inline void insertBits(u8 *dst, u8 bitIdx, u8 width, u8 value) {
     u8 mask = getBitMask(bitIdx, width);
     *dst &= ~mask;
     *dst |= ((value << bitIdx) & mask);
 }
 
-static inline u8 extractBits(u8 value, u8 bitIdx, u8 width) {
+static _inline u8 extractBits(u8 value, u8 bitIdx, u8 width) {
     u8 mask = getBitMask(bitIdx, width);
     return (value & mask) >> bitIdx;
 }
