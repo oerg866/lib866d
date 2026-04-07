@@ -45,11 +45,12 @@ typedef struct {
     u8 bgColor;
 } util_ApplicationLogo;
 
-typedef struct {
-    size_t  count;
-    size_t  capacity;
-    u16    *items;
-} DynU16;
+#define DYNARRAY_DEF(_NAME, _TYPE) typedef struct _NAME { size_t count, capacity; _TYPE ## * items; } _NAME
+
+DYNARRAY_DEF(DynU8,     u32);       /* Dynamic array of Unsigned  8-Bit integers */
+DYNARRAY_DEF(DynU16,    u16);       /* Dynamic array of Unsigned 16-Bit integers */
+DYNARRAY_DEF(DynU32,    u16);       /* Dynamic array of Unsigned 32-Bit integers */
+DYNARRAY_DEF(DynStr,    char *);    /* Dynamic array of strings (so an array of pointers) */
 
 bool util_stringEquals(const char *str1, const char *str2);
 bool util_stringStartsWith(const char *full, const char *toCheck);
@@ -78,18 +79,37 @@ u32 util_msToClocks(u32 milliseconds);
 /* Gets the clock() count value that corresponds to current time + <milliseconds> */
 u32 util_getTimeOffsetInClocks(u32 milliseconds);
 
-/*  Add value to a dynamic U16 array */
-bool util_dynU16Add(DynU16 *arr, u16 val);
-/*  Check if U16 array contains a value.
-    <index> is optional and will receive the index of the first matching  element */
-bool util_dynU16Contains(const DynU16 *arr, u16 val, size_t *index);
-/*  Remove value from DynU16 array */
-void util_dynU16Remove(DynU16 *arr, size_t index);
-/*  Sort the DynU16 array */
-void util_dynU16Sort(DynU16 *arr);
-/*  Remove all duplicates from the DynU16 array */
-void util_dynU16RemoveDuplicates(DynU16 *arr);
-/*  Release the memory allocated by the DynU16 array */
-void util_dynU16Free(DynU16 *arr);
+/* Dynamic array functions */
+bool util_dynU8Add          (DynU8  *arr, u8 val);          /*  Add value to a dynamic array */
+void util_dynU8Free         (DynU8  *arr);                  /*  Release the memory allocated by the dynamic array */
+void util_dynU8Remove       (DynU8  *arr, size_t index);    /*  Remove value from the dynamic array */
+void util_dynU8Sort         (DynU8  *arr);                  /*  Sort the dynamic array */
+bool util_dynU8Contains     (DynU8  *arr, u8 val);          /*  Check if dynamic array contains value */
+void util_dynU8Deduplicate  (DynU8  *arr);                  /*  Remove all duplicate entries from array so all entries are unique */
+
+bool util_dynU16Add         (DynU16 *arr, u16 val);         /*  Add value to a dynamic array */
+void util_dynU16Free        (DynU16 *arr);                  /*  Release the memory allocated by the dynamic array */
+void util_dynU16Remove      (DynU16 *arr, size_t index);    /*  Remove value from the dynamic array */
+void util_dynU16Sort        (DynU16 *arr);                  /*  Sort the dynamic array */
+bool util_dynU16Contains    (DynU16 *arr, u16 val);         /*  Check if dynamic array contains value */
+void util_dynU16Deduplicate (DynU16 *arr);                  /*  Remove all duplicate entries from array so all entries are unique */
+
+bool util_dynU32Add         (DynU32 *arr, u32 val);         /*  Add value to a dynamic array */
+void util_dynU32Free        (DynU32 *arr);                  /*  Release the memory allocated by the dynamic array */
+void util_dynU32Remove      (DynU32 *arr, size_t index);    /*  Remove value from the dynamic array */
+void util_dynU32Sort        (DynU32 *arr);                  /*  Sort the dynamic array */
+bool util_dynU32Contains    (DynU32 *arr, u32 val);         /*  Check if dynamic array contains value */
+void util_dynU32Deduplicate (DynU32 *arr);                  /*  Remove all duplicate entries from array so all entries are unique */
+
+bool util_dynStrAdd         (DynStr *arr, const char *str); /*  Add string to a dynamic string array (duplicates) */
+void util_dynStrFree        (DynStr *arr);                  /*  Release the memory allocated by the dynamic array & all strings */
+void util_dynStrRemove      (DynStr *arr, size_t index);    /*  Remove string from the dynamic array & free it */
+//TODO void util_dynStrSort        (DynStr *arr);                  /*  Sort the dynamic array */
+bool util_dynStrContains    (DynStr *arr, const char *str); /*  Check if dynamic array contains value */
+//TODO void util_dynStrDeduplicate (DynStr *arr);                  /*  Remove all duplicate entries from array so all entries are unique */
+void util_dynStrReset       (DynStr *arr);                  /* Prepares dynamic array for re-use without re-allocating, keeping the capacity. */
+
+/*  Special variant of dynStrAdd that acts like a printf. The resulting string will be capped at 255 characters */
+bool util_dynStrAddF        (DynStr *arr, const char *fmt, ...);
 
 #endif
