@@ -531,6 +531,8 @@ bool sys_allocateDMABuffer(sys_DMABuffer *buf, u32 size) {
     u32         rawPhys;
     u32         alignedPhys;
     u32         pageEnd;
+    u16         alignedSegment;
+    u16         alignedOffset;
 
     L866_NULLCHECK(buf);
     L866_ASSERTM(size <= 0x10000UL, "Requested buffer size out of range.");
@@ -557,13 +559,18 @@ bool sys_allocateDMABuffer(sys_DMABuffer *buf, u32 size) {
         alignedPhys = pageEnd;
     }
 
+    alignedSegment = (u16) (alignedPhys >> 4);
+    alignedOffset  = (u16) (alignedPhys & 0xFUL);
+
     /* Convert flat physical address back to a normalised huge pointer
        seg  = alignedPhys >> 4
        off  = alignedPhys & 0x0F                                       */
-    buf->aligned     = MK_FP(alignedPhys >> 4, alignedPhys & 0x0F);
+    buf->aligned     = MK_FP(alignedSegment, alignedOffset);
     buf->alignedSize = (u16)size;
     buf->rawPtr      = raw;
     buf->rawSize     = rawSize;
+
+    DBG("DMABuffer Alloc OK, aligned %08lx/%lp\n", alignedPhys, buf->aligned);
 
     return true;
 }
