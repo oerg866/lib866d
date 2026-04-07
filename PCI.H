@@ -76,6 +76,7 @@ typedef struct {
     struct {
         u32         address;
         pci_BARType type;
+        bool        prefetchable;
         u32         size;
     } bars[6];
 } pci_DeviceInfo;

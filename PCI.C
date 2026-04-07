@@ -231,6 +231,7 @@ bool pci_populateDeviceInfo(pci_DeviceInfo *info, pci_Device device) {
 
             /* Mask info bits from BAR address depending on type */
             if (info->bars[i].type == PCI_BAR_MEMORY) {
+                info->bars[i].prefetchable = (info->bars[i].address & 0x08UL);
                 info->bars[i].address &= 0xFFFFFFF0UL;
                 info->bars[i].size = pci_getBARSize(device, i);
             }
