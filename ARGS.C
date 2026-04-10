@@ -190,9 +190,9 @@ static args_ParseError parseAndSetNum(const args_arg *arg, const char *toParse, 
 
     for (arrayIndex = 0; arrayIndex < arraySize; arrayIndex++) {
         if (isSigned) {
-            parsedValue.iVal = strtoul(toParse, &parseEnd, 0);
+            parsedValue.iVal = strtol(toParse, &parseEnd, 0);
         } else {
-            parsedValue.uVal = strtol(toParse, &parseEnd, 0);
+            parsedValue.uVal = strtoul(toParse, &parseEnd, 0);
         }
 
         DBG("parseAndSetNum: /%s parsed uVal 0x%08lx\n", arg->prefix, parsedValue.uVal);
