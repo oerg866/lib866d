@@ -418,14 +418,14 @@ static size_t pnp_populateResources(pnp_DeviceInfo *dev) {
                 return logDevIndex;
             }
 
-            DBG("Resource %02zu: Large Type %u (%u bytes, %u bytes stored)\n", itemIndex, cur.large.type, cur.large.len, copySize);
+            DBG("Resource %02u: Large Type %u (%u bytes, %u bytes stored)\n", itemIndex, cur.large.type, cur.large.len, copySize);
         } else {
             /* Small resource, size is already known */
             if (!pnp_readResourceStructWithMaxSize(cur.small.data, cur.small.len, cur.small.len)) {
                 DBG("Small resource read error\n");
                 return logDevIndex;
             }
-            DBG("Resource %02zu: Small Type %u (%u bytes)\n", itemIndex, cur.small.type, cur.small.len);
+            DBG("Resource %02u: Small Type %u (%u bytes)\n", itemIndex, cur.small.type, cur.small.len);
         }
 
         if (!cur.isLarge && cur.small.type == PNP_S_LOG_DEV_ID) {
@@ -623,6 +623,33 @@ bool pnp_getDeviceDataByString(pnp_DeviceInfo *dst, const char *toFind) {
 
     pnp_writeReg(PNP_REG_CONFIG_CTRL, PNP_CTRL_WAIT_KEY);
     return found;
+}
+
+bool pnp_updateDeviceData(pnp_DeviceInfo *device) {
+    size_t i;
+
+    L866_NULLCHECK(device);
+    L866_ASSERT(device->csn != 0);
+
+    pnp_writeReg(PNP_REG_CONFIG_CTRL, PNP_CTRL_WAIT_KEY );
+    pnp_sendInitKey();
+    util_sleep(2);
+
+    /* Wake up our card */
+    pnp_writeReg(PNP_REG_WAKE_CSN, device->csn);
+
+    for (i = 0; i < device->numLogDevs; i++) {
+        pnp_LogicalDeviceInfo *curLogDev = &device->logDev[i];
+
+        if (!pnp_switchLogicalDevice(i)) {
+            DBG("Error switching to logical device %u\n", i);
+            break;
+        }
+
+        pnp_logDevPopulateData(curLogDev);
+    }
+
+    return true;
 }
 
 pnp_LogicalDeviceInfo *pnp_getLogicalDevice(pnp_DeviceInfo *dst, u16 index) {
