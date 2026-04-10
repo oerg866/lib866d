@@ -12,41 +12,6 @@
 #define __LIB866D_TAG__ "SYS"
 #include "debug.h"
 
-#define SYS_RETURN_ON_NULL(ptr, return_value) if (ptr == NULL) { DBG("ERROR - '" #ptr "' is NULL! Result = '" #return_value "'\r\n"); return return_value; }
-
-typedef struct {
-    const char cpuidStr[13];
-    sys_CPUManufacturer mfr;
-    const char *clearName;
-} sys_CPUMfrLookupEntry;
-
-static const sys_CPUMfrLookupEntry sys_cpuManufacturerTable[] = {
-    { "AuthenticAMD", SYS_CPU_MFR_AMD,          "AMD"                       },
-    { "CentaurHauls", SYS_CPU_MFR_IDT,          "IDT/Centaur"               },
-    { "CyrixInstead", SYS_CPU_MFR_CYRIX,        "Cyrix/STM/IBM"             },
-    { "GenuineIntel", SYS_CPU_MFR_INTEL,        "Intel"                     },
-    { "GenuineIotel", SYS_CPU_MFR_INTEL,        "Intel"                     },
-    { "TransmetaCPU", SYS_CPU_MFR_TRANSMETA,    "Transmeta"                 },
-    { "GenuineTMx86", SYS_CPU_MFR_TRANSMETA,    "Transmeta"                 },
-    { "Geode by NSC", SYS_CPU_MFR_NATSEMI,      "National Semiconductor"    },
-    { "NexGenDriven", SYS_CPU_MFR_NEXGEN,       "NexGen"                    },
-    { "RiseRiseRise", SYS_CPU_MFR_RISE,         "Rise"                      },
-    { "SiS SiS SiS ", SYS_CPU_MFR_SIS,          "SiS"                       },
-    { "UMC UMC UMC ", SYS_CPU_MFR_UMC,          "UMC"                       },
-    { "Vortex86 SoC", SYS_CPU_MFR_DMP,          "DM&P"                      },
-    { "  Shanghai  ", SYS_CPU_MFR_ZHAOXIN,      "Zaoxin"                    },
-    { "HygonGenuine", SYS_CPU_MFR_HYGON,        "Hygon"                     },
-    { "Genuine  RDC", SYS_CPU_MFR_RDC,          "RDC"                       },
-    { "E2K MACHINE ", SYS_CPU_MFR_MCST,         "MCST Elbrus"               },
-    { "VIA VIA VIA ", SYS_CPU_MFR_VIA,          "VIA"                       },
-    { "AMD ISBETTER", SYS_CPU_MFR_AMDK5ES,      "AMD (K5 ES)"               },
-    { "GenuineAO486", SYS_CPU_MFR_MISTER,       "MiSTer ao486"              },
-    { "MiSTer AO486", SYS_CPU_MFR_MISTER,       "MiSTer ao486"              },
-    { "MicrosoftXTA", SYS_CPU_MFR_MICROSOFT,    "Microsoft"                 },
-    { "VirtualApple", SYS_CPU_MFR_APPLE,        "Apple"                     },
-    { "            ", SYS_CPU_MFR_UNKNOWN,      "Unknown"                   }
-};
-
 #pragma pack(1)
 /* Since we're lazy, we will just ignore the upper dword since we probably won't run on such a new system :-) */
 typedef struct {
@@ -59,9 +24,9 @@ typedef struct {
 
 static void swapE820Entries(sys_E820MemBlock *a, sys_E820MemBlock *b) {
     sys_E820MemBlock tmp;
-    memcpy(&tmp,    a,      sizeof(sys_E820MemBlock));
-    memcpy(a,       b,      sizeof(sys_E820MemBlock));
-    memcpy(b,       &tmp,   sizeof(sys_E820MemBlock));
+    tmp = *a;
+    *a = *b;
+    *b = tmp;
 }
 
 static void sortE820Entries(sys_E820MemBlock *regions, size_t regionCount) {
@@ -293,178 +258,6 @@ u32 sys_getPhysicalAddress(void _far *ptr) {
     u32 segment = (u32) FP_SEG(ptr);
     u32 offset = (u32) FP_OFF(ptr);
     return (segment << 4) + offset;
-}
-
-bool sys_getCPUIDString(char *outStr) {
-    /* TODO: Error out if CPU does not support CPUID. */
-    char _far *outStrFar = (char _far *) outStr;
-    outStr[12] = 0x00;
-
-    _asm {
-        CPUID_LEVEL(0)
-        les di, outStrFar
-        MOV_DWORD_PTR_ESDI_OFFSET_REG(0, _EBX)
-        MOV_DWORD_PTR_ESDI_OFFSET_REG(4, _EDX)
-        MOV_DWORD_PTR_ESDI_OFFSET_REG(8, _ECX)
-    }
-
-    return true;
-}
-
-sys_CPUIDVersionInfo sys_getCPUIDVersionInfo(void) {
-    sys_CPUIDVersionInfo result;
-    void _far *resultPtr = (void _far *) &result;
-
-    _asm {
-        CPUID_LEVEL(1)
-        les di, resultPtr
-        MOV_DWORD_PTR_ESDI_OFFSET_REG(0, _EAX)
-    }
-
-    return result;
-}
-
-sys_CPUManufacturer sys_getCPUManufacturer(const char **mfrClearName) {
-    char cpuidStr[13] = { 0, };
-    size_t mfrLookupIndex;
-
-    if (sys_getCPUIDString(cpuidStr) == false) {
-        return SYS_CPU_MFR_UNKNOWN;
-    }
-
-    /* Find table entry for given CPUID string */
-    for (mfrLookupIndex = 0; mfrLookupIndex < (size_t) ___SYS_CPU_MFR_COUNT___; mfrLookupIndex++) {
-        if (0 == strcmp(cpuidStr, sys_cpuManufacturerTable[mfrLookupIndex].cpuidStr)) {
-            if (mfrClearName != NULL) {
-                *mfrClearName = sys_cpuManufacturerTable[mfrLookupIndex].clearName;
-            }
-            return sys_cpuManufacturerTable[mfrLookupIndex].mfr;
-        }
-    }
-
-    /* No matching manufacturer found. You've got a rare CPU there! */
-    return SYS_CPU_MFR_UNKNOWN;
-}
-
-bool sys_cpuReadMSR(u32 msrId, sys_CPUMSR *msr) {
-    u32 _far *msrFarPtr = (u32 _far *) msr;
-    u32 _far *msrIdFarPtr = (u32 _far *) &msrId;
-
-    UNUSED_ARG(msrId); /* asm macro below doesn't detect it as used */
-    SYS_RETURN_ON_NULL(msr, false);
-
-    _asm {
-        pushf
-        cli
-        WBINVD
-        MOV_REG_DWORDPTR(_ECX, msrIdFarPtr)
-        RDMSR
-        /* CPUMSR are two packed DWORDS so we can access them like this */
-        les di, dword ptr msrFarPtr
-        MOV_DWORD_PTR_ESDI_OFFSET_REG(0, _EAX)
-        MOV_DWORD_PTR_ESDI_OFFSET_REG(4, _EDX)
-        popf
-    }
-
-    DBG("sys_cpuReadMSR: MSR 0x%08lx, eax = %08lx edx = %08lx\n", msrId, msr->lo, msr->hi);
-
-    return true;
-}
-
-bool sys_cpuWriteMSR(u32 msrId, const sys_CPUMSR *msr) {
-    u32 _far *msrFarPtr = (u32 _far *) msr;
-    u32 _far *msrIdFarPtr = (u32 _far *) &msrId;
-
-    UNUSED_ARG(msrId); /* asm macro below doesn't detect it as used */
-    SYS_RETURN_ON_NULL(msr, false);
-
-    _asm {
-        pushf
-        cli
-        WBINVD
-        MOV_REG_DWORDPTR(_ECX, msrIdFarPtr)
-        /* CPUMSR are two packed DWORDS so we can access them like this */
-        les di, dword ptr msrFarPtr
-        MOV_REG_DWORD_PTR_ESDI_OFFSET(_EAX, 0)
-        MOV_REG_DWORD_PTR_ESDI_OFFSET(_EDX, 4)
-        WRMSR
-        popf
-    }
-
-    DBG("sys_cpuWriteMSR: MSR 0x%08lx, eax = %08lx edx = %08lx\n", msrId, msr->lo, msr->hi);
-
-    return true;
-}
-
-bool sys_cpuWriteMSRAndVerify(u32 msrId, const sys_CPUMSR *msr) {
-    sys_CPUMSR  verify  = { 0UL, 0UL };
-    bool        success = sys_cpuWriteMSR(msrId, msr);
-
-    success &= sys_cpuReadMSR(msrId, &verify);
-    success &= verify.lo == msr->lo;
-    success &= verify.hi == msr->hi;
-
-    return success;
-}
-
-bool sys_cpuReadControlRegister(u8 index, u32 *out) {
-    u32 _far *outFarPtr = (u32 _far *) out;
-
-    SYS_RETURN_ON_NULL(out, false);
-    if (index >= 8) {
-        return false;
-    }
-
-    /* Sorry this is really ugly... */
-    switch (index) {
-        case 0: _asm { MOV_DWORD_PTR_CR(0, outFarPtr) }; break;
-        case 1: _asm { MOV_DWORD_PTR_CR(1, outFarPtr) }; break;
-        case 2: _asm { MOV_DWORD_PTR_CR(2, outFarPtr) }; break;
-        case 3: _asm { MOV_DWORD_PTR_CR(3, outFarPtr) }; break;
-        case 4: _asm { MOV_DWORD_PTR_CR(4, outFarPtr) }; break;
-        case 5: _asm { MOV_DWORD_PTR_CR(5, outFarPtr) }; break;
-        case 6: _asm { MOV_DWORD_PTR_CR(6, outFarPtr) }; break;
-        case 7: _asm { MOV_DWORD_PTR_CR(7, outFarPtr) }; break;
-        default: return false;
-    }
-
-    DBG("Read CR%u: 0x%08lx\n", (u16) index, *out);
-    return true;
-}
-
-bool sys_cpuWriteControlRegister(u8 index, const u32 *in) {
-    u32 _far *inFarPtr = (u32 _far *) in;
-
-    SYS_RETURN_ON_NULL(in, false);
-    if (index >= 8) {
-        return false;
-    }
-
-    /* Sorry this is really ugly... */
-    switch (index) {
-        case 0: _asm { MOV_CR_DWORD_PTR(0, inFarPtr) }; break;
-        case 1: _asm { MOV_CR_DWORD_PTR(1, inFarPtr) }; break;
-        case 2: _asm { MOV_CR_DWORD_PTR(2, inFarPtr) }; break;
-        case 3: _asm { MOV_CR_DWORD_PTR(3, inFarPtr) }; break;
-        case 4: _asm { MOV_CR_DWORD_PTR(4, inFarPtr) }; break;
-        case 5: _asm { MOV_CR_DWORD_PTR(5, inFarPtr) }; break;
-        case 6: _asm { MOV_CR_DWORD_PTR(6, inFarPtr) }; break;
-        case 7: _asm { MOV_CR_DWORD_PTR(7, inFarPtr) }; break;
-        default: return false;
-    }
-
-    DBG("Write CR%u: 0x%08lx\n", (u16) index, *in);
-    return true;
-}
-
-bool sys_cpuIsInV86Mode() {
-    u8 result;
-    __asm {
-        SMSW_AX
-        and ax, 1
-        mov result, al
-    }
-    return result;
 }
 
 void sys_outPortL(u16 port, u32 outVal) {

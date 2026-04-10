@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "cpu.h"
 #include "sys.h"
 #include "types.h"
 #include "386asm.h"
@@ -39,10 +40,10 @@ static const u8 cpu_K6_setMultiplierValueTable[] = {
 
 bool cpu_K6_enableEPMRIOBlock(bool enable) {
     u32 epmrBase = 0x0000FFF0 | (u32) enable; /* EPMR Base + Enable bit */
-    sys_CPUMSR msr;
+    cpu_MSR msr;
     msr.lo = epmrBase;
     msr.hi = 0UL;
-    return sys_cpuWriteMSR(CPU_K6_MSR_EPMR, &msr);
+    return cpu_writeMSR(CPU_K6_MSR_EPMR, &msr);
 }
 
 cpu_K6_SetMulError cpu_K6_setMultiplier(u16 whole, u16 fraction) {
@@ -94,22 +95,22 @@ cpu_K6_SetMulError cpu_K6_setMultiplier(u16 whole, u16 fraction) {
 
 bool cpu_K6_setWriteOrderMode(cpu_K6_WriteOrderMode mode) {
     /* prepare the EWBEC bits with the word supplied in mode */
-    u32         modeBits = ((u32) mode << 2) & 0x0000000CUL;
-    sys_CPUMSR  msr;
-    bool        success;
+    u32     modeBits = ((u32) mode << 2) & 0x0000000CUL;
+    cpu_MSR msr;
+    bool    success;
 
     if (mode >= __CPU_K6_WRITEORDER_MODE_COUNT__) {
         return false;
     }
 
     /* Read EFER to manipulate it */
-    success = sys_cpuReadMSR(CPU_K6_MSR_EFER, &msr);
+    success = cpu_readMSR(CPU_K6_MSR_EFER, &msr);
     /* Mask the EWBEC bits 2 and 3. It's also important that we
        do not fault the CPU by writing reserved bits */
     msr.lo &= 0x000000F3UL;
     msr.lo |= modeBits;
     /* Write new EFER to MSR */
-    success &= sys_cpuWriteMSR(CPU_K6_MSR_EFER, &msr);
+    success &= cpu_writeMSR(CPU_K6_MSR_EFER, &msr);
 
     return success;
 }
@@ -127,7 +128,7 @@ bool cpu_K6_setWriteAllocateRange(const cpu_K6_WriteAllocateConfig *config) {
     Refer to AMD-K6®-2 Processor Data Sheet 21850J/0—February 2000
     Page 40, Write Handling Control Register (WHCR)–Model 8/[7:0] */
 static bool cpu_K6_isNewWHCRLayout() {
-    sys_CPUIDVersionInfo cpuid = sys_getCPUIDVersionInfo();
+    cpu_CPUIDVersionInfo cpuid = cpu_getCPUIDVersionInfo();
     u16 family = cpuid.basic.family;
     u16 model = cpuid.basic.model;
     u16 stepping = cpuid.basic.stepping;
@@ -139,7 +140,7 @@ static bool cpu_K6_isNewWHCRLayout() {
 }
 
 bool cpu_K6_setWriteAllocateRangeValues(u32 sizeKB, bool memoryHole) {
-    sys_CPUMSR msr;
+    cpu_MSR msr;
 
     if (cpu_K6_isNewWHCRLayout()) {
         /* Mask Write Allocate range bits (K6-2 or higher)*/
@@ -158,17 +159,17 @@ bool cpu_K6_setWriteAllocateRangeValues(u32 sizeKB, bool memoryHole) {
         msr.hi = 0UL;
     }
 
-    return sys_cpuWriteMSRAndVerify(CPU_K6_MSR_WHCR, &msr);
+    return cpu_writeMSRAndVerify(CPU_K6_MSR_WHCR, &msr);
 }
 
 bool cpu_K6_getWriteAllocateRange(cpu_K6_WriteAllocateConfig *config) {
-    sys_CPUMSR  msr;
+    cpu_MSR msr;
 
     if (config == NULL) {
         return false;
     }
 
-    if (sys_cpuReadMSR(CPU_K6_MSR_WHCR, &msr) == false) {
+    if (cpu_readMSR(CPU_K6_MSR_WHCR, &msr) == false) {
         return false;
     }
 
@@ -248,7 +249,7 @@ static bool cpu_K6_getSizeKBFromMTRRMask(u32 mask, u32 *lengthOut) {
     return false;
 }
 
-static void cpu_K6_decodeMTRRs(cpu_K6_MemoryTypeRangeRegs *mtrr, const sys_CPUMSR *msr) {
+static void cpu_K6_decodeMTRRs(cpu_K6_MemoryTypeRangeRegs *mtrr, const cpu_MSR *msr) {
     mtrr->configs[0].offset         = K6_MTRR_OFFSET(msr->lo);
     mtrr->configs[0].uncacheable    = K6_MTRR_IS_UC(msr->lo);
     mtrr->configs[0].writeCombine   = K6_MTRR_IS_WC(msr->lo);
@@ -263,8 +264,8 @@ static void cpu_K6_decodeMTRRs(cpu_K6_MemoryTypeRangeRegs *mtrr, const sys_CPUMS
 }
 
 bool cpu_K6_getMemoryTypeRanges(cpu_K6_MemoryTypeRangeRegs *regs) {
-    sys_CPUMSR msr;
-    bool success = sys_cpuReadMSR(CPU_K6_MSR_UWCCR, &msr);
+    cpu_MSR msr;
+    bool success = cpu_readMSR(CPU_K6_MSR_UWCCR, &msr);
     L866_NULLCHECK(regs);
 
     if (!success) {
@@ -275,8 +276,8 @@ bool cpu_K6_getMemoryTypeRanges(cpu_K6_MemoryTypeRangeRegs *regs) {
     return true;
 }
 
-static void cpu_K6_encodeMTRRs(sys_CPUMSR *msr, const cpu_K6_MemoryTypeRangeRegs *mtrr) {
-    memset(msr, 0, sizeof(sys_CPUMSR));
+static void cpu_K6_encodeMTRRs(cpu_MSR *msr, const cpu_K6_MemoryTypeRangeRegs *mtrr) {
+    memset(msr, 0, sizeof(cpu_MSR));
 
     if (mtrr->configs[0].isValid)
         msr->lo = (mtrr->configs[0].offset & 0xFFFE0000UL)
@@ -294,58 +295,58 @@ static void cpu_K6_encodeMTRRs(sys_CPUMSR *msr, const cpu_K6_MemoryTypeRangeRegs
 }
 
 bool cpu_K6_setMemoryTypeRanges(const cpu_K6_MemoryTypeRangeRegs *regs) {
-    sys_CPUMSR  msr;
+    cpu_MSR  msr;
 
     L866_NULLCHECK(regs);
     cpu_K6_encodeMTRRs(&msr, regs);
-    return sys_cpuWriteMSRAndVerify(CPU_K6_MSR_UWCCR, &msr);
+    return cpu_writeMSRAndVerify(CPU_K6_MSR_UWCCR, &msr);
 }
 
 bool cpu_K6_setL1Cache(bool enable) {
     bool success = true;
     u32 cr0;
 
-    success &= sys_cpuReadControlRegister(0, &cr0);
+    success &= cpu_readControlRegister(0, &cr0);
     cr0 &= 0x9FFFFFFFUL; /* Mask Cache Disable + Non-Writeback */
     cr0 |= ((enable) ? 0UL : 0x60000000UL );
-    success &= sys_cpuWriteControlRegister(0, &cr0);
+    success &= cpu_writeControlRegister(0, &cr0);
     return success;
 }
 
 bool cpu_K6_setL2Cache(bool enable) {
-    sys_CPUMSR  msr;
-    bool        success = true;
+    cpu_MSR msr;
+    bool    success = true;
 
-    success &= sys_cpuReadMSR(CPU_K6_MSR_EFER, &msr);
+    success &= cpu_readMSR(CPU_K6_MSR_EFER, &msr);
     msr.lo &= 0xFFFFFFEFUL; /* Mask L2 Disable */
     msr.lo |= ((enable) ? 0UL : 0x00000010UL);
-    success &= sys_cpuWriteMSR(CPU_K6_MSR_EFER, &msr);
+    success &= cpu_writeMSR(CPU_K6_MSR_EFER, &msr);
     return success;
 }
 
 bool cpu_K6_getL1CacheStatus(void) {
     u32     cr0 = 0;
-    bool    success = sys_cpuReadControlRegister(0, &cr0);
+    bool    success = cpu_readControlRegister(0, &cr0);
  
     L866_ASSERT(success);
     return (cr0 & 0x40000000UL) == 0UL;
 }
 
 bool cpu_K6_getL2CacheStatus(void) {
-    sys_CPUMSR  msr;
-    bool        success = sys_cpuReadMSR(CPU_K6_MSR_EFER, &msr);
+    cpu_MSR msr;
+    bool    success = cpu_readMSR(CPU_K6_MSR_EFER, &msr);
 
     L866_ASSERT(success);
     return (msr.lo & 0x00000010UL) == 0UL;
 }
 
 bool cpu_K6_setDataPrefetch(bool enable) {
-    sys_CPUMSR  msr;
-    bool        success = true;
+    cpu_MSR msr;
+    bool    success = true;
 
-    success &= sys_cpuReadMSR(CPU_K6_MSR_EFER, &msr);
+    success &= cpu_readMSR(CPU_K6_MSR_EFER, &msr);
     msr.lo &= 0xFFFFFFFDUL; /* Mask Data Prefetch Enable */
     msr.lo |= ((enable) ? 0x00000002UL : 0);
-    success &= sys_cpuWriteMSR(CPU_K6_MSR_EFER, &msr);
+    success &= cpu_writeMSR(CPU_K6_MSR_EFER, &msr);
     return success;
 }
