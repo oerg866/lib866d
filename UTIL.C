@@ -17,29 +17,71 @@
 #include "debug.h"
 
 bool util_stringEquals(const char *str1, const char *str2) {
+    L866_NULLCHECK(str1);
+    L866_NULLCHECK(str2);
     return (bool) strcmp(str1, str2) == 0;
 }
 
 bool util_stringStartsWith(const char *full, const char *toCheck) {
+    L866_NULLCHECK(full);
+    L866_NULLCHECK(toCheck);
     return (bool) strncmp(toCheck, full, strlen(toCheck)) == 0;
 }
 
+bool util_stringEndsWith(const char *full, const char *toCheck) {
+    const char *start;
+    L866_NULLCHECK(full);
+    L866_NULLCHECK(toCheck);
+
+    start = full + strlen(full) - strlen(toCheck);
+    if (start < full) return false;
+    return util_stringEquals(start, toCheck);
+}
+
 void util_stringReplaceChar(char *str, char oldChar, char newChar) {
+    L866_NULLCHECK(str);
     while (*str != 0x00) {
         *str = (char) ((*str == oldChar) ? newChar : *str);
         str++;
     }
 }
 
+bool util_stringToU32(const char *str, u32 *out) {
+    u32 value;
+    char *endPtr;
+
+    L866_NULLCHECK(str);
+    L866_NULLCHECK(out);
+
+    value = strtoul(str, &endPtr, 0);
+
+    /* If endPtr points to the beginning of the string, no conversion occurred. */
+    if (endPtr == str) {
+        return false;
+    }
+
+    /* Check if the entire string was consumed. */
+    if (*endPtr != 0x00) {
+        return false;
+    }
+
+    *out = value;
+    return true;
+}
+
 void util_swapInPlace16(u16 *buf) {
+    L866_NULLCHECK(buf);
     *buf = SWAP16(*buf);
 }
 
 void util_swapInPlace32(u32 *buf) {
+    L866_NULLCHECK(buf);
     *buf = SWAP32(*buf);
 }
 
 int util_strncasecmp(const char *str1, const char *str2, size_t strLen) {
+    L866_NULLCHECK(str1);
+    L866_NULLCHECK(str2);
     while (strLen--) {
         int c1 = (int) tolower(*str1);
         int c2 = (int) tolower(*str2);
@@ -196,14 +238,17 @@ static _inline void util_dynArrayFreeGeneric(void *arr) {
     da->capacity = 0;
 }
 
-static _inline bool util_dynArrayContainsGeneric(void *arr, void *val, size_t elementSize) {
+static _inline bool util_dynArrayContainsGeneric(void *arr, void *val, size_t elementSize, size_t *at) {
     DynArray *da = (DynArray *) arr;
     size_t i;
     L866_NULLCHECK(arr);
 
     for (i = 0; i < da->count; i++) {
         void *srcData = util_dynArrayItemAtIndex(arr, i, elementSize);
-        if (memcmp(srcData, val, elementSize) == 0) return true; 
+        if (memcmp(srcData, val, elementSize) == 0) {
+            if (at != NULL) *at = i;
+            return true; 
+        }
     }
     return false;
 }
@@ -226,12 +271,12 @@ void util_dynArrayDeduplicateGeneric(void *arr, size_t elementSize) {
     }
 }
 
-#define util_dynArrayGrowOne(arr)       util_dynArrayGrowGeneric        (arr, 1, sizeof(arr->items[0]))
-#define util_dynArrayAdd(arr, val)      util_dynArrayAddGeneric         (arr, &val, sizeof(arr->items[0]))
-#define util_dynArrayFree(arr)          util_dynArrayFreeGeneric        (arr)
-#define util_dynArrayRemove(arr, index) util_dynArrayRemoveGeneric      (arr, index, sizeof(arr->items[0]))
-#define util_dynArrayContains(arr, val) util_dynArrayContainsGeneric    (arr, &val, sizeof(arr->items[0]))
-#define util_dynArrayDeduplicate(arr)   util_dynArrayDeduplicateGeneric (arr, sizeof(arr->items[0]))
+#define util_dynArrayGrowOne(arr)           util_dynArrayGrowGeneric        (arr, 1, sizeof(arr->items[0]))
+#define util_dynArrayAdd(arr, val)          util_dynArrayAddGeneric         (arr, &val, sizeof(arr->items[0]))
+#define util_dynArrayFree(arr)              util_dynArrayFreeGeneric        (arr)
+#define util_dynArrayRemove(arr, index)     util_dynArrayRemoveGeneric      (arr, index, sizeof(arr->items[0]))
+#define util_dynArrayContains(arr, val, at) util_dynArrayContainsGeneric    (arr, &val, sizeof(arr->items[0]), at);
+#define util_dynArrayDeduplicate(arr)       util_dynArrayDeduplicateGeneric (arr, sizeof(arr->items[0]))
 
 static int _compareU8(const void *a, const void *b) {
     if (*(const u8 *)a < *(const u8 *)b) return -1;
@@ -253,29 +298,29 @@ static int _compareU32(const void *a, const void *b) {
 
 #define _CHECK_AND_QSORT(arr, compareFunc) { L866_NULLCHECK(arr); qsort(arr->items, arr->count, sizeof(arr->items[0]), compareFunc); }
 
-bool util_dynU8Add          (DynU8  *arr, u8  val)      { return util_dynArrayAdd(arr, val); }
-bool util_dynU16Add         (DynU16 *arr, u16 val)      { return util_dynArrayAdd(arr, val); }
-bool util_dynU32Add         (DynU32 *arr, u32 val)      { return util_dynArrayAdd(arr, val); }
+bool util_dynU8Add          (DynU8  *arr, u8  val)              { return util_dynArrayAdd(arr, val); }
+bool util_dynU16Add         (DynU16 *arr, u16 val)              { return util_dynArrayAdd(arr, val); }
+bool util_dynU32Add         (DynU32 *arr, u32 val)              { return util_dynArrayAdd(arr, val); }
 
-void util_dynU8Free         (DynU8  *arr)               { util_dynArrayFree(arr); }
-void util_dynU16Free        (DynU16 *arr)               { util_dynArrayFree(arr); }
-void util_dynU32Free        (DynU32 *arr)               { util_dynArrayFree(arr); }
+void util_dynU8Free         (DynU8  *arr)                       { util_dynArrayFree(arr); }
+void util_dynU16Free        (DynU16 *arr)                       { util_dynArrayFree(arr); }
+void util_dynU32Free        (DynU32 *arr)                       { util_dynArrayFree(arr); }
 
-void util_dynU8Remove       (DynU8  *arr, size_t index) { util_dynArrayRemove(arr, index); }
-void util_dynU16Remove      (DynU16 *arr, size_t index) { util_dynArrayRemove(arr, index); }
-void util_dynU32Remove      (DynU32 *arr, size_t index) { util_dynArrayRemove(arr, index); }
+void util_dynU8Remove       (DynU8  *arr, size_t index)         { util_dynArrayRemove(arr, index); }
+void util_dynU16Remove      (DynU16 *arr, size_t index)         { util_dynArrayRemove(arr, index); }
+void util_dynU32Remove      (DynU32 *arr, size_t index)         { util_dynArrayRemove(arr, index); }
 
-void util_dynU8Sort         (DynU8  *arr)               { _CHECK_AND_QSORT(arr, _compareU8); }
-void util_dynU16Sort        (DynU16 *arr)               { _CHECK_AND_QSORT(arr, _compareU16); }
-void util_dynU32Sort        (DynU32 *arr)               { _CHECK_AND_QSORT(arr, _compareU32); }
+void util_dynU8Sort         (DynU8  *arr)                       { _CHECK_AND_QSORT(arr, _compareU8); }
+void util_dynU16Sort        (DynU16 *arr)                       { _CHECK_AND_QSORT(arr, _compareU16); }
+void util_dynU32Sort        (DynU32 *arr)                       { _CHECK_AND_QSORT(arr, _compareU32); }
 
-bool util_dynU8Contains     (DynU8  *arr, u8 val)       { return util_dynArrayContains(arr, val); }
-bool util_dynU16Contains    (DynU16 *arr, u16 val)      { return util_dynArrayContains(arr, val); }
-bool util_dynU32Contains    (DynU32 *arr, u32 val)      { return util_dynArrayContains(arr, val); }
+bool util_dynU8Contains     (DynU8  *arr, u8 val, size_t *at)   { return util_dynArrayContains(arr, val, at); }
+bool util_dynU16Contains    (DynU16 *arr, u16 val, size_t *at)  { return util_dynArrayContains(arr, val, at); }
+bool util_dynU32Contains    (DynU32 *arr, u32 val, size_t *at)  { return util_dynArrayContains(arr, val, at); }
 
-void util_dynU8Deduplicate  (DynU8  *arr)               { util_dynArrayDeduplicate(arr); }
-void util_dynU16Deduplicate (DynU16 *arr)               { util_dynArrayDeduplicate(arr); }
-void util_dynU32Deduplicate (DynU32 *arr)               { util_dynArrayDeduplicate(arr); }
+void util_dynU8Deduplicate  (DynU8  *arr)                       { util_dynArrayDeduplicate(arr); }
+void util_dynU16Deduplicate (DynU16 *arr)                       { util_dynArrayDeduplicate(arr); }
+void util_dynU32Deduplicate (DynU32 *arr)                       { util_dynArrayDeduplicate(arr); }
 
 /* Strings are arrays of pointers, so they need special functions */
 
