@@ -139,3 +139,39 @@ bool snd_volumeSetAbs       (snd_VolumeControl *ctrl, size_t idx, u8 value, snd_
 
     return ok;
 }
+
+void snd_beep(u16 freq, u32 lengthMs) {
+    u16 divider;
+    u8 dividerHi;
+    u8 dividerLo;
+    u8 port61;
+
+    if (freq == 0 || lengthMs == 0UL) return;
+
+    divider = (u16)(1193180UL / (u32) freq);
+
+    /* read current speaker control */
+    port61 = inp(0x61);
+
+    /* turn off speaker gate while we reprogram the PIT */
+    port61 &= ~0x03;
+    outp(0x61, port61);
+
+    /* program PIT channel 2: square wave, lobyte/hibyte */
+    dividerHi = divider >> 8;
+    dividerLo = divider & 0xFF;
+    outp(0x43, 0xB6);           /* 10 11 011 0 */
+    outp(0x42, dividerLo);      /* lo byte */
+    outp(0x42, dividerHi);      /* hi byte */
+
+    /* enable speaker gate + PIT output */
+    port61 |= 0x03;
+    outp(0x61, port61);
+
+    /* wait */
+    util_sleep(lengthMs);
+
+    /* disable speaker */
+    port61 &= ~0x03;
+    outp(0x61, port61);
+}

@@ -63,6 +63,9 @@ bool snd_volumeGetAbs       (snd_VolumeControl *ctrl, size_t idx, u8 *l, u8 *r, 
 /*  Set the absolute volume of a given channel in a volume control. Affects channels given in <sides>. */
 bool snd_volumeSetAbs       (snd_VolumeControl *ctrl, size_t idx, u8 value, snd_ChannelMask sides);
 
+/* Emits a beep on the PC speaker with the given frequency */
+void snd_beep               (u16 freq, u32 lengthMs);
+
 // TODO bool snd_volumeSetPercent   (snd_VolumeControl *ctrl, size_t idx, float percent);
 
 #endif
