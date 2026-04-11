@@ -26,6 +26,8 @@ typedef void (*SB16_DMACallback)(void _huge *dst, u32 sizeBytes);
 bool            sb16_init(u16 io, u16 irq, u16 dmaL, u16 dmaH);
 /*  Deinitialize SB16 environment, restore IRQ / ISR state */
 void            sb16_deinit(void);
+/*  Checks if this IRQ would be supported by a SB16 card */
+bool            sb16_isIrqSupported(u16 irq);
 
 /* Note - the following functions require sb16_init to be called first. */
 

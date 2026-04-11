@@ -273,6 +273,16 @@ void sb16_deinit() {
     }
 }
 
+static _inline u8 getIrqBitForIrq(u16 irq) {
+    static const u8 irqBitLookup[16] = { 0x00, 0x00, 0x01, 0x00, 0x00, 0x02, 0x00, 0x04, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    if (irq > 15) return 0x00;
+    return irqBitLookup[irq];
+}
+
+bool sb16_isIrqSupported(u16 irq) {
+    return getIrqBitForIrq(irq) != 0x00;
+}
+
 sb16_DSPVersion sb16_getDSPVersion(u16 io) {
     sb16_DSPVersion ret = { 0xFF, 0xFF };
     bool success = true;
@@ -314,9 +324,8 @@ bool sb16_getDSPCopyright(u16 io, char *buf, u16 bufSize) {
 }
 
 bool sb16_startPlayback16(u16 io, bool stereo, u16 rate, SB16_DMACallback cb) {
-    static const u8 irqBitLookup[16] = { 0x00, 0x00, 0x01, 0x00, 0x00, 0x02, 0x00, 0x04, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00 };
     u16 i;
-    u8 irqBit;
+    u8 irqBit = getIrqBitForIrq(sbIrq);
     sb16_DMAFormat fmt = {0};
     bool success = true;
     u16 playbackHalfSize = SB16_BUFFER_SLICE_SIZE;
@@ -324,11 +333,15 @@ bool sb16_startPlayback16(u16 io, bool stereo, u16 rate, SB16_DMACallback cb) {
     L866_ASSERTM(initialized, "SB16 module not initialized.");
     L866_NULLCHECK(cb);
 
-    if (!dspReset(io)) return false;
+    if (irqBit = 0x00) {
+        DBG("Invalid IRQ: %u\n", sbIrq);
+        return false;
+    }
 
-    /* Set IRQ */
-    L866_ASSERTM(sbIrq < 16, "Invalid IRQ");
-    irqBit = irqBitLookup[sbIrq];
+    if (!dspReset(io)) {
+        DBG("DSP Reset failed\n");
+        return false;
+    }
 
     DBG("sb16_startPlayback16: Buffer aligned %lp\n", dmaBuffer.aligned);
 
@@ -353,11 +366,10 @@ bool sb16_startPlayback16(u16 io, bool stereo, u16 rate, SB16_DMACallback cb) {
   
     /* Set IRQ and DMA channel in Mixer */
     playbackDma = sbDmaH;
-    L866_ASSERTM(irqBit != 0x00, "Invalid IRQ");
     L866_ASSERTM(playbackDma != 0x04, "Invalid DMA");
     mixerWrite(io, mr_Irq, irqBit);
     mixerWrite(io, mr_Dma, BIT8(playbackDma));
-    DBG("mixer irq %02x dma %02x\n", irqBit, BIT(playbackDma));
+    DBG("mixer irq bit %02x dma bit %02x\n", irqBit, BIT(playbackDma));
 
     /* Program the DMA */
     dma_dmaSetParams(playbackDma, dmaBuffer.aligned, (u16)SB16_BUFFER_SIZE);
