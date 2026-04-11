@@ -175,10 +175,10 @@ static bool util_dynArrayGrowGeneric(void *arr, size_t elementSize) {
     L866_NULLCHECK(arr);
     if ((da->count + 1) <= da->capacity) return true;
 
+    newCapacity = (da->capacity == 0) ? 8 : (da->capacity * 2);
+
     DBG("grow: %p->items(%p) wants cap. %u has %u, elemsize %u count %u \n", arr, da->items,
         newCapacity, da->capacity, elementSize, da->count);
-    newCapacity = (da->capacity == 0) ? 8 : (da->capacity * 2);
-    /* Do this instead of reallocating so that we can at least keep the original data intact */
 
     /* First try to expand the block */
     if (_expand(da->items, newCapacity * elementSize)) {
