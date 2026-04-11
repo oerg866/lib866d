@@ -266,9 +266,9 @@ typedef struct {
 } pnp_DeviceInfo;
 
 typedef enum {
-    pnp_svpIORange = 0,
-    pnp_svpIRQ,
-    pnp_svpDMA,
+    pnp_svpIORange = 0,     /* IO port range resource / setting */
+    pnp_svpIRQ,             /* IRQ resource / setting */
+    pnp_svpDMA,             /* DMA resource / setting */
 } pnp_SupportedValueType;
 #pragma pack()
 
@@ -310,7 +310,13 @@ u8 pnp_irqGet(pnp_LogicalDeviceInfo *ld, u16 index);
 bool pnp_dmaIsActive(pnp_LogicalDeviceInfo *ld, u16 index);
 /*  Gets the DMA channel #<index> in <ld> */
 u8 pnp_dmaGet(pnp_LogicalDeviceInfo *ld, u16 index);
-
+/*  Obtain <type> base value #<index> in <ld>, will end up in <value>. Returns false if unsuccessful for whatever reason. */
+bool pnp_getCurrentValueByTypeAndIndex(pnp_LogicalDeviceInfo *ld, pnp_SupportedValueType type, u16 index, u16 *value);
+/*  Set <type> base value #<index> in <dev>'s <logdev>'th logical device,
+    returns false if unsuccessful for whatever reason. Verifies that the value is read back as written too. */
+bool pnp_setCurrentValueByTypeAndIndex(pnp_DeviceInfo *dev, size_t logDev, pnp_SupportedValueType type, u16 index, u16 value);
+/*  Enable or disable the <logDev>'th logical device in <dev>. */
+bool pnp_setLogicalDeviceActive(pnp_DeviceInfo *dev, size_t logDev, bool active);
 /*  Gets the <index>th IRQ resource of resource list rl (from logical device), NULL if not found.
     If totalCount is non-NULL, it will receive the total amount of resources of this type */
 pnp_Resource *pnp_resIrq(pnp_ResourceList *rl, size_t index, size_t *totalCount);

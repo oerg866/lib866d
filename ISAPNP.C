@@ -198,19 +198,13 @@ void pnp_freeDeviceData(pnp_DeviceInfo *info) {
     }
 }
 
-static void pnp_writeReg(u8 reg, u8 val) {
-    outp(PNP_ADDRESS, reg);
-    sys_ioDelay(1);
-    outp(PNP_WRITE, val);
-    sys_ioDelay(1);
-}
 
 static u8 pnp_readReg(u8 reg) {
     u8 ret;
     outp(PNP_ADDRESS, reg);
-    sys_ioDelay(1);
+    sys_ioDelay(10);
     ret = inp(PNP_READ);
-    sys_ioDelay(1);
+    sys_ioDelay(10);
     return ret;
 }
 
@@ -223,8 +217,39 @@ static void pnp_readStruct(void *buf, u8 reg, size_t size) {
     }
 }
 
-static u16 pnp_readReg16(u8 reg) {
-    return ((u16)pnp_readReg(reg) << 8) | ((u16)pnp_readReg(reg + 1));
+static void pnp_writeReg(u8 reg, u8 val) {
+    outp(PNP_ADDRESS, reg);
+    sys_ioDelay(10);
+    outp(PNP_WRITE, val);
+    sys_ioDelay(10);
+}
+
+static void pnp_writeStruct(void *buf, u8 reg, size_t size) {
+    u8 *src = (u8 *)buf;
+    while (size--) {
+        pnp_writeReg(reg, *src);
+        src++;
+        reg++;
+    }
+}
+
+static bool pnp_writeStructVerify(void *buf, u8 reg, size_t size) {
+    u8 *src = (u8 *)buf;
+    while (size--) {
+        u8 written;
+        pnp_writeReg(reg, *src);
+        written = pnp_readReg(reg);
+
+        if (written != *src) {
+            DBG("writeStructVerify failed: reg %02x w %02x != r %02x\n", reg, *src, written);
+            return false;
+        }
+
+        src++;
+        reg++;
+    }
+
+    return true;
 }
 
 static bool pnp_readResourceByte(u8 *dst) {
@@ -270,19 +295,20 @@ static void pnp_sendInitKey(void) {
 
     /* Write 0x00 twice to enter initiation state */
     outp(PNP_ADDRESS, 0x00);
+    sys_ioDelay(10);
     outp(PNP_ADDRESS, 0x00);
+    sys_ioDelay(10);
 
     /* Send the 32-byte LFSR key */
     for (i = 0; i < 32; i++) {
         outp(PNP_ADDRESS, initKey[i]);
-        sys_ioDelay(1);
+        sys_ioDelay(10);
     }
 }
 
 static u8 pnp_readWithDelay() {
     u8 ret = inp(PNP_READ);
-    sys_ioDelay(1);
-
+    sys_ioDelay(10);
     return ret;
 }
 
@@ -487,14 +513,53 @@ static size_t pnp_populateResources(pnp_DeviceInfo *dev) {
 
 /* Select logical device of currently configuring device and verifies it */
 static bool pnp_switchLogicalDevice(size_t index) {
+    u8 value = (u8) index;
+
+    DBG("switchLogicalDevice %u\n", index);
+
     if (index >= 4) return false;
 
     /* switch to this logical device number */
-    pnp_writeReg(PNP_REG_LOGDEV, (u8) index);
-    sys_ioDelay(1);
+    return pnp_writeStructVerify(&value, PNP_REG_LOGDEV, 1);
+}
 
-    /* check if switch worked */
-    return index == pnp_readReg(PNP_REG_LOGDEV);
+static void pnp_readMem32WithByteswap(pnp_Mem32Cfg *dst, size_t idx) {
+    pnp_readStruct(dst, PNP_REG_MEM32(idx), sizeof(pnp_Mem32Cfg));
+    util_swapInPlace32(&dst->base);
+    util_swapInPlace32(&dst->limitRange);
+}
+
+static void pnp_readMem24WithByteswap(pnp_Mem24Cfg *dst, size_t idx) {
+    pnp_readStruct(dst, PNP_REG_MEM24(idx), sizeof(pnp_Mem24Cfg));
+    util_swapInPlace16(&dst->base);
+    util_swapInPlace16(&dst->limitRange);
+}
+
+static void pnp_readIoWithByteswap(pnp_IoCfg *dst, size_t idx) {
+    pnp_readStruct(dst, PNP_REG_IO(idx), sizeof(pnp_IoCfg));
+    util_swapInPlace16(&dst->port);
+}
+
+static void pnp_readIrq(pnp_IrqCfg *dst, size_t idx) {
+    pnp_readStruct(dst, PNP_REG_IRQ(idx), sizeof(pnp_IrqCfg));
+}
+
+static void pnp_readDma(pnp_DmaCfg *dst, size_t idx) {
+    pnp_readStruct(dst, PNP_REG_DMA(idx), sizeof(pnp_DmaCfg));
+}
+
+static bool pnp_writeIoWithByteswap(size_t idx, pnp_IoCfg *toWrite) {
+    pnp_IoCfg tmp = *toWrite;
+    util_swapInPlace16(&tmp.port); /* MSB First */
+    return pnp_writeStructVerify(&tmp, PNP_REG_IO(idx), sizeof(tmp));
+}
+
+static bool pnp_writeIrq(size_t idx, pnp_IrqCfg *toWrite) {
+    return pnp_writeStructVerify(toWrite, PNP_REG_IRQ(idx), sizeof(*toWrite));
+}
+
+static bool pnp_writeDma(size_t idx, pnp_DmaCfg *toWrite) {
+    return pnp_writeStructVerify(toWrite, PNP_REG_DMA(idx), sizeof(*toWrite));
 }
 
 static void pnp_logDevPopulateData(pnp_LogicalDeviceInfo *dst) {
@@ -504,30 +569,11 @@ static void pnp_logDevPopulateData(pnp_LogicalDeviceInfo *dst) {
 
     dst->active = pnp_readReg(PNP_REG_ACTIVATE);
 
-    for (j = 0; j < 4; j++) { /* Read Mem32 */
-        pnp_readStruct(&dst->mem32[j], PNP_REG_MEM32(j), sizeof(pnp_Mem32Cfg));
-        util_swapInPlace32(&dst->mem32[j].base);
-        util_swapInPlace32(&dst->mem32[j].limitRange);
-    }
-
-    for (j = 0; j < 4; j++) { /* Read Mem24 */
-        pnp_readStruct(&dst->mem24[j], PNP_REG_MEM24(j), sizeof(pnp_Mem24Cfg));
-        util_swapInPlace16(&dst->mem24[j].base);
-        util_swapInPlace16(&dst->mem24[j].limitRange);
-    }
-
-    for (j = 0; j < 8; j++) {
-        pnp_readStruct(&dst->io[j], PNP_REG_IO(j), sizeof(pnp_IoCfg));
-        util_swapInPlace16(&dst->io[j].port);
-    }
-
-    for (j = 0; j < 2; j++) {
-        pnp_readStruct(&dst->irq[j], PNP_REG_IRQ(j), sizeof(pnp_IrqCfg));
-    }
-
-    for (j = 0; j < 2; j++) {
-        pnp_readStruct(&dst->dma[j], PNP_REG_DMA(j), sizeof(pnp_DmaCfg));
-    }
+    for (j = 0; j < 4; j++) { pnp_readMem32WithByteswap(&dst->mem32[j], j); }
+    for (j = 0; j < 4; j++) { pnp_readMem24WithByteswap(&dst->mem24[j], j); }
+    for (j = 0; j < 8; j++) { pnp_readIoWithByteswap(&dst->io[j], j); }
+    for (j = 0; j < 2; j++) { pnp_readIrq(&dst->irq[j], j); }
+    for (j = 0; j < 2; j++) { pnp_readDma(&dst->dma[j], j); }
 
     is32 |= dst->mem32[0].base != 0UL;
     is24 |= dst->mem24[0].base != 0;
@@ -623,6 +669,19 @@ bool pnp_getDeviceDataByString(pnp_DeviceInfo *dst, const char *toFind) {
 
     pnp_writeReg(PNP_REG_CONFIG_CTRL, PNP_CTRL_WAIT_KEY);
     return found;
+}
+
+static bool pnp_activateDeviceAndSetLogicalDevice(u8 csn, size_t logDev) {
+    pnp_writeReg(PNP_REG_CONFIG_CTRL, PNP_CTRL_WAIT_KEY);
+    pnp_sendInitKey();
+    util_sleep(2);
+
+    /* Wake up our card */
+    pnp_writeReg(PNP_REG_WAKE_CSN, csn);
+
+    DBG("Wake csn %u\n", csn);
+
+    return pnp_switchLogicalDevice(logDev);
 }
 
 bool pnp_updateDeviceData(pnp_DeviceInfo *device) {
@@ -733,6 +792,80 @@ bool pnp_dmaIsActive(pnp_LogicalDeviceInfo *ld, u16 index) {
 u8 pnp_dmaGet(pnp_LogicalDeviceInfo *ld, u16 index) {
     L866_NULLCHECK(ld);
     return ld->dma[index].ch;
+}
+
+bool pnp_getCurrentValueByTypeAndIndex(pnp_LogicalDeviceInfo *ld, pnp_SupportedValueType type, u16 index, u16 *value) {
+    switch (type) {
+        case pnp_svpIORange: /* fallthrough */
+        //case pnp_svpIO:
+            if (index >= PNP_MAX_IO_DESCRIPTORS) return false;
+            *value = pnp_ioPortGet(ld, index);
+            return true;
+        case pnp_svpIRQ:
+            if (index >= PNP_MAX_IRQ_DESCRIPTORS) return false;
+            *value = pnp_irqGet(ld, index);
+            return true;
+        case pnp_svpDMA:
+            if (index >= PNP_MAX_DMA_DESCRIPTORS) return false;
+            *value = (u16) pnp_dmaGet(ld, index);
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool pnp_setCurrentValueByTypeAndIndex(pnp_DeviceInfo *dev, size_t logDev, pnp_SupportedValueType type, u16 index, u16 value) {
+    pnp_IoCfg io;
+    pnp_DmaCfg dma;
+    pnp_IrqCfg irq;
+    int i;
+    L866_NULLCHECK(dev);
+    if (logDev >= dev->numLogDevs) return false;
+    if (!pnp_activateDeviceAndSetLogicalDevice(dev->csn, logDev)) return false;
+
+    /* Logical device is activated */
+
+#if 0
+    for (i = 0; i < 256; i++) {
+        u8 a = pnp_readReg(i);
+        util_sleep(1UL);
+        printf("%02x ", a);
+        if (i % 16 == 15) printf("\n");
+    }
+
+    getchar();
+#endif
+    switch (type) {
+        case pnp_svpIORange: /* fallthrough */
+        //case pnp_svpIO:
+            if (index >= PNP_MAX_IO_DESCRIPTORS) return false;
+            pnp_readIoWithByteswap(&io, index);
+            io.port = value;
+            return pnp_writeIoWithByteswap(index, &io);
+        case pnp_svpIRQ:
+            if (index >= PNP_MAX_IRQ_DESCRIPTORS) return false;
+            if (value > 15) return false;
+            pnp_readIrq(&irq, index);
+            irq.level = value;
+            return pnp_writeIrq(index, &irq);
+        case pnp_svpDMA:
+            if (index >= PNP_MAX_DMA_DESCRIPTORS) return false;
+            if (value > 7) return false;
+            pnp_readDma(&dma, index);
+            dma.ch = value;
+            return pnp_writeDma(index, &dma);
+        default:
+            return false;
+    }
+}
+
+bool pnp_setLogicalDeviceActive(pnp_DeviceInfo *dev, size_t logDev, bool active) {
+    u8 value = active ? 1 : 0;
+
+    L866_NULLCHECK(dev);
+    if (logDev >= dev->numLogDevs) return false;
+    if (!pnp_activateDeviceAndSetLogicalDevice(dev->csn, logDev)) return false;
+    return pnp_writeStructVerify(&value, PNP_REG_ACTIVATE, 1);
 }
 
 static pnp_Resource *pnp_getResourceByIndex(pnp_ResourceList *rl, size_t index) {
