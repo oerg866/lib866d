@@ -303,8 +303,10 @@ static bool cdexRequest(char letter, cdrom_CdexRequest *req) {
 /*  Sends a CDEX request with the filled IOCTL Structure. RequestCmd depicts input or ouptut Ioctl.
     statusCode may be NULL and will receive the request status code, for further processing */
 static bool cdexIoctl(char letter, cdrom_Ioctl *ctl, cdrom_CdexRequestCmd requestCmd, cdrom_CdexRequestStatus *statusCode) {
-    cdrom_CdexRequest req = {0};
-    u16 error = 0;
+    cdrom_CdexRequest req;
+    /*  MS-C bug: initializing unnamed unions writes two data blocks, smashing the stack,
+        use memset instead */
+    memset(&req, 0, sizeof(req));
 
     req.command         = requestCmd;
     req.ioctl.ctlBuf    = (cdrom_Ioctl _far *) ctl;
@@ -319,16 +321,18 @@ static bool cdexIoctl(char letter, cdrom_Ioctl *ctl, cdrom_CdexRequestCmd reques
 
     if (statusCode != NULL) *statusCode = req.status;
 
-    DBG("IOCTL %c: cmd %02x, status %04x\n", letter, req.command, error, req.status);
+    DBG("IOCTL %c: cmd %02x, status %04x\n", letter, req.command, req.status);
 
     return req.status.error == 0 && req.status.done == 1;
 }
 
 /* Quick aliases for Input/Output IOCTLs */
-static _inline bool cdexIoctlIn (char letter, cdrom_Ioctl *ctl, cdrom_CdexRequestStatus *statusCode) { 
+static _inline bool cdexIoctlIn (char letter, cdrom_Ioctl *ctl, cdrom_IoctlInCmd cmd, cdrom_CdexRequestStatus *statusCode) { 
+    ctl->command = (u8) cmd;
     return cdexIoctl(letter, ctl, r_ioctlIn, statusCode); 
 }
-static _inline bool cdexIoctlOut(char letter, cdrom_Ioctl *ctl, cdrom_CdexRequestStatus *statusCode) { 
+static _inline bool cdexIoctlOut(char letter, cdrom_Ioctl *ctl, cdrom_IoctlInCmd cmd, cdrom_CdexRequestStatus *statusCode) { 
+    ctl->command = (u8) cmd;
     return cdexIoctl(letter, ctl, r_ioctlOut, statusCode); 
 }
 
@@ -371,17 +375,15 @@ bool cdrom_getCdexInfo(cdrom_CdexInfo *info) {
 }
 
 bool cda_getTOC(char letter, cda_TOC *toc) {
-    cdrom_Ioctl ctl = { i_getAudioDiscInfo, };
-    u8 unit;
+    cdrom_Ioctl ctl;
     u8 i;
     cda_MSF leadout;
-    u32 previousTrackStart = 0UL;
 
     L866_NULLCHECK(toc);
 
     if (!cdrom_getCdexInfo(NULL)) return false;
     if (!driveIsCdexDrive(letter)) return false;
-    if (!cdexIoctlIn(letter, &ctl, NULL)) return false;
+    if (!cdexIoctlIn(letter, &ctl, i_getAudioDiscInfo, NULL)) return false;
 
     leadout = ctl.audioDiscInfo.leadout;
 
@@ -398,11 +400,11 @@ bool cda_getTOC(char letter, cda_TOC *toc) {
     /* Now get the actual track infos */
     for (i = ctl.audioDiscInfo.firstTrack; i <= ctl.audioDiscInfo.lastTrack; i++) {
         cda_TrackEntry *t = &toc->tracks[toc->trackCount];
-        cdrom_Ioctl trackCtl = { i_getAudioTrackInfo, };
+        cdrom_Ioctl trackCtl;
         
         trackCtl.audioTrackInfo.trackNumber = i;
         
-        if (!cdexIoctlIn(letter, &trackCtl, NULL)) return false;
+        if (!cdexIoctlIn(letter, &trackCtl, i_getAudioTrackInfo, NULL)) return false;
 
         /* Now get all useful info we can */
         
@@ -492,13 +494,13 @@ bool cda_stop(char letter) {
 }
 
 bool cda_getPlaybackPosition(char letter, cda_MSF *inTrack, cda_MSF *onDisc) {
-    cdrom_Ioctl ctl = { i_getQChannelInfo, };
+    cdrom_Ioctl ctl;
     cdrom_CdexRequestStatus status;
 
     if (!cdrom_getCdexInfo(NULL)) return false;
     if (!driveIsCdexDrive(letter)) return false;
 
-    if (!cdexIoctlIn(letter, &ctl, &status)) return false;
+    if (!cdexIoctlIn(letter, &ctl, i_getQChannelInfo, &status)) return false;
 
     /* Check if we're playing to begin with */
 
