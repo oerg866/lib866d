@@ -331,7 +331,7 @@ static _inline bool cdexIoctlIn (char letter, cdrom_Ioctl *ctl, cdrom_IoctlInCmd
     ctl->command = (u8) cmd;
     return cdexIoctl(letter, ctl, r_ioctlIn, statusCode); 
 }
-static _inline bool cdexIoctlOut(char letter, cdrom_Ioctl *ctl, cdrom_IoctlInCmd cmd, cdrom_CdexRequestStatus *statusCode) { 
+static _inline bool cdexIoctlOut(char letter, cdrom_Ioctl *ctl, cdrom_IoctlOutCmd cmd, cdrom_CdexRequestStatus *statusCode) { 
     ctl->command = (u8) cmd;
     return cdexIoctl(letter, ctl, r_ioctlOut, statusCode); 
 }
@@ -397,8 +397,13 @@ bool cda_getTOC(char letter, cda_TOC *toc) {
     toc->lastTrack = ctl.audioDiscInfo.lastTrack;
     toc->totalDiscLength = ctl.audioDiscInfo.leadout;
 
+    if (toc->lastTrack > CDA_MAX_TRACKS) {
+        DBG("Warnung, CD has more than %u tracks! Truncating TOC\n", CDA_MAX_TRACKS);
+        toc->lastTrack = CDA_MAX_TRACKS;
+    }
+
     /* Now get the actual track infos */
-    for (i = ctl.audioDiscInfo.firstTrack; i <= ctl.audioDiscInfo.lastTrack; i++) {
+    for (i = toc->firstTrack; i <= toc->lastTrack; i++) {
         cda_TrackEntry *t = &toc->tracks[toc->trackCount];
         cdrom_Ioctl trackCtl;
         
@@ -447,7 +452,7 @@ u8 cda_getFirstAudioTrack(const cda_TOC *toc) {
         if (toc->tracks[i].type == tt_audio) return i;
     }
 
-    return 0;
+    return U8_MAX;
 }
 
 const cda_TrackEntry *cda_tocGetTrack(const cda_TOC *toc, u8 track) {

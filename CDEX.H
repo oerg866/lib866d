@@ -28,7 +28,7 @@ typedef enum {
     tt_audio = 0,
     tt_data = 1,
     tt_4ch = 2,
-    tt_invalid = 3,
+    tt_invalid = 3
 } cda_TrackType;
 
 /* Red Book Position / length definition (MM:SS:FF) */
@@ -50,10 +50,10 @@ typedef struct {
 /* CD table of contents structure (track listing + length info) */
 typedef struct {
     u8              trackCount;
-    u8              firstTrack;
+    u8              firstTrack;                 /* Track indices = 1-based, so the first track is 1 */
     u8              lastTrack;
     cda_MSF         totalDiscLength;
-    cda_TrackEntry  tracks[CDA_MAX_TRACKS + 1];  /* index 0 = lead-out */
+    cda_TrackEntry  tracks[CDA_MAX_TRACKS + 1]; /* index 0 = lead-out */
 } cda_TOC;
 
 /* CDEX info structure */
