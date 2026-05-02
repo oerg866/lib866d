@@ -12,7 +12,7 @@ Don't blame me if things explode from using this library, etc. (I hate legal tal
 
 * `386ASM.H`: Macros to use 32-Bit register and other 386+ level opcodes in inline-assembly
 * `ARGS`: Sophisticated Program Argument Parsing
-* `CPU_K6`: Low-level helper tools for manipulating **AMD K6 Family CPU features**
+* `CPU_K86`: Low-level helper tools for manipulating **AMD K86 Family CPU features** (K5/K6)
     * EPMR, multiplier, MTRR, Write Order/Allocate, L1/L2 Cache
 * `DEBUG.H`: Assertions and debugging features
 * `PCI`: PCI Device access
