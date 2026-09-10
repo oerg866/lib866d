@@ -166,7 +166,7 @@ static bool pnp_resourceListAppend(pnp_ResourceList *list, pnp_Resource *toAdd) 
     L866_NULLCHECK(list->items);
     L866_NULLCHECK(toAdd);
 
-    list->items[newCount-1] = *toAdd;
+    memcpy(&list->items[newCount-1], toAdd, sizeof(pnp_Resource));
 
     list->count = newCount;
     return true;
@@ -194,6 +194,7 @@ void pnp_freeDeviceData(pnp_DeviceInfo *info) {
         /* Free all DFs (= ResourceListLists)*/
         for (df = 0; df < info->logDev[i].dfList.count; df++) {
             pnp_freeResourceList(&info->logDev[i].dfList.funcs[df]);
+            free(info->logDev[i].dfList.funcs);
         }
     }
 }
