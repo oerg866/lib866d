@@ -13,7 +13,7 @@
 #include <stdio.h>
 
 #include "types.h"
-#include "vgacon.h"
+#include "console.h"
 #include "util.h"
 
 #define __LIB866D_TAG__ "ARGS.C"
@@ -98,18 +98,19 @@ void args_printAppInfo(const args_arg *argList, size_t argListSize) {
 
 static void args_incrementAndCheckPageBreak(void) {
     static size_t printedLines = 0;
-    size_t consoleHeight = vgacon_getConsoleHeight();
+    size_t consoleHeight = (size_t) con_getRows;
     printedLines++;
     if (printedLines % consoleHeight == consoleHeight - 1) {
-        vgacon_waitKeyWithMessage();
+        con_plain("Press any key to continue...\n");
+        getchar();
     }
 }
 
 static void args_printLineSeparator(void) {
     u16 i;
-    u16 width = vgacon_getConsoleWidth();
+    u16 width = con_getColumns();
     for (i = 0; i < width; ++i) {
-        putchar(0xCDU);
+        con_putc(0xCDU);
     }
     args_incrementAndCheckPageBreak();
 }
@@ -124,9 +125,10 @@ void args_printUsage(const args_arg *argList, size_t argListSize) {
     /* First entry can be an ARGS_HEADER entry, so we print it at the start */
     if (GET_ARG_TYPE(argList[0].type) == ARG_HEADER) {
         args_printLineSeparator();
-        printf("%s\n\n", argList[0].prefix);
-        printf("%s\n", argList[0].description);
-        vgacon_waitKeyWithMessage();
+        con_plain("%s\n\n", argList[0].prefix);
+        con_plain("%s\n", argList[0].description);
+        con_plain("Press any key to continue...\n");
+        getchar();
         args_printLineSeparator();
         idx = 1;
     }

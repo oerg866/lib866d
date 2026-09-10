@@ -9,9 +9,10 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <time.h>
+#include <malloc.h>
 
 #include "util.h"
-#include "vgacon.h"
+#include "console.h"
 
 #define __LIB866D_TAG__ "UTIL.C"
 #include "debug.h"
@@ -127,21 +128,22 @@ void util_printWithApplicationLogo(const util_ApplicationLogo *logo, const char 
     static size_t logoLinesShown = 0;
     const char *logoLinePtr;
     va_list args;
+    char buf[128] = {0};
 
     L866_NULLCHECK(logo);
     L866_NULLCHECK(logo->logoData);
 
     logoLinePtr = &logo->logoData[logoLinesShown * logo->width];
 
-    if (vgacon_isCursorAtStartOfLine() && logoLinesShown < logo->height) {
-        putchar(' '); /* work around scrolling color attribute bug, we always leave a space ... */
-        vgacon_printSizedColorString(logoLinePtr, logo->width, logo->fgColor, logo->bgColor, false);
+    if (con_getCursor().x == 0 && logoLinesShown < logo->height) {
+        con_colorTextSized(logoLinePtr, logo->width, logo->fgColor, logo->bgColor);
         logoLinesShown++;
     }
 
     va_start (args, fmt);
-    vprintf(fmt, args);
+    _vsnprintf(buf, sizeof(buf)-1, fmt, args);
     va_end(args);
+    con_plain("%s", buf);
 }
 
 i32 util_round(float f) {

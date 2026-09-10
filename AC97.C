@@ -334,7 +334,7 @@ bool ac97_setVariableSampleRate(ac97_Interface *ac, bool enable, u16 rate) {
         
     /* If VSR bit doesn't stick, codec doesn't support it */
     if (!ac97_writeVerify(ac, AC97_REG_EXTENDED_CTRL, extendedCtrlReg)) {
-        printf("Fail: %04x got %04x\n", extendedCtrlReg, ac->read(ac, AC97_REG_EXTENDED_CTRL));
+        DBG("Fail: %04x got %04x\n", extendedCtrlReg, ac->read(ac, AC97_REG_EXTENDED_CTRL));
         return false;
     }
 
