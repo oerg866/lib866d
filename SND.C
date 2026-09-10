@@ -6,6 +6,8 @@
 
 #include "snd.h"
 
+#include <conio.h>
+
 #define __LIB866D_TAG__ "SND"
 #include "debug.h"
 
@@ -45,7 +47,7 @@ bool snd_volumeGetAbs       (snd_VolumeControl *ctrl, size_t idx, u8 *l, u8 *r, 
     L866_NULLCHECK(ctrl);
 
     if (idx >= ctrl->volumeCount) {
-        DBG("setVolume idx %zu out of range\n", idx);
+        DBG("setVolume idx %u out of range\n", idx);
         return false;
     }
 
@@ -85,7 +87,7 @@ static bool snd_volumeSetInternal(bool doChannel, bool doMute, snd_VolumeControl
             ok &= ctrl->write(ctrl, idx, muteReg, mute);
         }
 
-        DBG("vol (%zu) = %u, VolReg %02x=%02x MuteVal %u MuteReg %02x=%02x --> %u\n", 
+        DBG("vol (%u) = %u, VolReg %02x=%02x MuteVal %u MuteReg %02x=%02x --> %u\n", 
             idx, volume, volReg, vol, muteValue, muteReg, mute, ok);
 
     }
@@ -110,7 +112,7 @@ bool snd_volumeSetAbs       (snd_VolumeControl *ctrl, size_t idx, u8 value, snd_
     L866_NULLCHECK(ctrl);
 
     if (idx >= ctrl->volumeCount) {
-        DBG("setVolume idx %zu out of range\n", idx);
+        DBG("setVolume idx %u out of range\n", idx);
         return false;
     }
 
@@ -119,7 +121,7 @@ bool snd_volumeSetAbs       (snd_VolumeControl *ctrl, size_t idx, u8 value, snd_
     vol = &ctrl->chans[idx];
  
     if (value > vol->maxVal) {
-        DBG("setVolume %zu value %u out of range\n", idx, value);
+        DBG("setVolume %u value %u out of range\n", idx, value);
         return false;
     }
 
