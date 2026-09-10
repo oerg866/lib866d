@@ -820,6 +820,7 @@ bool pnp_setCurrentValueByTypeAndIndex(pnp_DeviceInfo *dev, size_t logDev, pnp_S
     pnp_DmaCfg dma;
     pnp_IrqCfg irq;
     int i;
+    bool ret;
     L866_NULLCHECK(dev);
     if (logDev >= dev->numLogDevs) return false;
     if (!pnp_activateDeviceAndSetLogicalDevice(dev->csn, logDev)) return false;
@@ -837,36 +838,46 @@ bool pnp_setCurrentValueByTypeAndIndex(pnp_DeviceInfo *dev, size_t logDev, pnp_S
     getchar();
 #endif
     switch (type) {
-        case pnp_svpIORange: /* fallthrough */
+        case pnp_svpIORange:
         //case pnp_svpIO:
             if (index >= PNP_MAX_IO_DESCRIPTORS) return false;
             pnp_readIoWithByteswap(&io, index);
             io.port = value;
-            return pnp_writeIoWithByteswap(index, &io);
+            ret = pnp_writeIoWithByteswap(index, &io);
+            break;
         case pnp_svpIRQ:
             if (index >= PNP_MAX_IRQ_DESCRIPTORS) return false;
             if (value > 15) return false;
             pnp_readIrq(&irq, index);
             irq.level = value;
-            return pnp_writeIrq(index, &irq);
+            ret = pnp_writeIrq(index, &irq);
+            break;
         case pnp_svpDMA:
             if (index >= PNP_MAX_DMA_DESCRIPTORS) return false;
             if (value > 7) return false;
             pnp_readDma(&dma, index);
             dma.ch = value;
-            return pnp_writeDma(index, &dma);
+            ret = pnp_writeDma(index, &dma);
+            break;
         default:
-            return false;
+            ret = false;
+            break;
     }
+
+    pnp_writeReg(PNP_REG_CONFIG_CTRL, PNP_CTRL_WAIT_KEY);
+    return ret;
 }
 
 bool pnp_setLogicalDeviceActive(pnp_DeviceInfo *dev, size_t logDev, bool active) {
     u8 value = active ? 1 : 0;
+    bool ret;
 
     L866_NULLCHECK(dev);
     if (logDev >= dev->numLogDevs) return false;
     if (!pnp_activateDeviceAndSetLogicalDevice(dev->csn, logDev)) return false;
-    return pnp_writeStructVerify(&value, PNP_REG_ACTIVATE, 1);
+    ret = pnp_writeStructVerify(&value, PNP_REG_ACTIVATE, 1);
+    pnp_writeReg(PNP_REG_CONFIG_CTRL, PNP_CTRL_WAIT_KEY);
+    return ret;
 }
 
 static pnp_Resource *pnp_getResourceByIndex(pnp_ResourceList *rl, size_t index) {
