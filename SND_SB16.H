@@ -22,6 +22,8 @@ typedef struct {
     Runs in ISR context, be mindful of that. */
 typedef void (*SB16_DMACallback)(void _huge *dst, u32 sizeBytes);
 
+/*  Reset SB16 DSP */
+bool            sb16_reset(u16 io);
 /*  Initialize SB16 environment for given IO Port, IRQ, Low/High DMA. High DMA may be 0! */
 bool            sb16_init(u16 io, u16 irq, u16 dmaL, u16 dmaH);
 /*  Deinitialize SB16 environment, restore IRQ / ISR state */

@@ -394,3 +394,7 @@ void sb16_stopPlayback(u16 io) {
         dspReset(io);
     }
 }
+
+bool sb16_reset(u16 io) {
+    return dspReset(io);
+}
