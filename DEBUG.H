@@ -12,7 +12,7 @@
 
 #ifdef DEBUG
 # include "console.h"
-# define DBG vgacon_printDebug
+# define DBG con_debug
 # ifndef ASSERT_ENABLE
 #  define ASSERT_ENABLE
 # endif
