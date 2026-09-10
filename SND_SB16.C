@@ -333,7 +333,7 @@ bool sb16_startPlayback16(u16 io, bool stereo, u16 rate, SB16_DMACallback cb) {
     L866_ASSERTM(initialized, "SB16 module not initialized.");
     L866_NULLCHECK(cb);
 
-    if (irqBit = 0x00) {
+    if (irqBit == 0x00) {
         DBG("Invalid IRQ: %u\n", sbIrq);
         return false;
     }
