@@ -293,18 +293,14 @@ void sys_ioDelay(u16 loops) {
 }
 
 sys_osWindowsMode sys_getWindowsMode(void) {
-    u16 winMode = 0;
+    union REGS regs;
 
     /* WINDOWS Enhanced Mode Install Check (AX = 1600H) */
-    _asm {
-        mov ax, 0x1600
-        int 0x2f
-        mov winMode, ax
-    }
+    regs.x.ax = 0x1600;
+    int86(0x2F, &regs, &regs);
+    DBG("getWindowsMode: AX=%04x\n", regs.x.ax);
 
-    DBG("getWindowsMode: AX=%04x\n", winMode);
-
-    switch (winMode) {
+    switch (regs.x.ax) {
         case 0x0000:    return OS_PURE_DOS;
         case 0x1600:    return OS_PURE_DOS; /* DOS without XMS handler */
         case 0xFFFF:    return OS_WIN_REAL_MODE;
