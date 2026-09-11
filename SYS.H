@@ -65,4 +65,12 @@ void sys_freeDMABuffer(sys_DMABuffer *buf);
 /*  Checks if drive with given letter is remote (i.e. network, SUBST, CD, etc.) */
 bool sys_driveIsRemote(char letter);
 
+/* Return the PSP segment for this program */
+u16 sys_getPsp(void);
+
+/*  Set an environment variable, recursively propagating the change to all
+    parent environments, including the master environment.
+    CAUTION: MIGHT NOT BE STABLE WITH NON-IBM/MS DOS SYSTEMS! */
+bool sys_putenvRecursive(const char *key, const char *value);
+
 #endif

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <malloc.h>
 #include <dos.h>
+#include <ctype.h>
 
 #include "sys.h"
 #include "types.h"
@@ -402,4 +403,217 @@ _ASM_LBL_(noErr)
     if (attr & BIT(15) || attr & BIT(12)) return true;
 
     return false;
+}
+
+u16 sys_getPsp(void) {
+    union REGS regs;
+    regs.h.ah = 0x62;
+    int86(0x21, &regs, &regs);
+    return regs.x.bx;
+}
+
+
+u16 getParentPsp(u16 psp) {
+    u16 parentPsp   = *(u16 _far *)(MK_FP(psp, 0x16));
+    return parentPsp;
+}
+
+/*  Get total usable size of the environment block at <segment>, 0 = error or oversize */
+static u16 getEnvironmentSize(u16 segment) {
+    u8 _far    *mcb         = (u8 _far *)MK_FP(segment - 1, 0);
+    u16         paragraphs  = *(u16 _far *)(&mcb[3]);
+
+    /* Not an MCB? Then this isn't an environment block we should be writing to. */
+    if (mcb[0] != 'M' && mcb[0] != 'Z') return 0;
+
+    /* Guard against a block large enough to overflow the 16-bit byte count */
+    if (paragraphs > 0x0FFF) return 0;
+
+    return paragraphs * 16;
+}
+
+/*  Checks if key matches current env entry + '=' character (to avoid false matches) */
+static bool envEntryMatchesKey(const char _far *entry, const char *key) {
+    u16 keyLen = (u16) strlen(key);
+    if (_fstrncmp(entry, (const char _far *) key, keyLen) != 0) return false;
+    return entry[keyLen] == '=';
+}
+
+/*  Size in bytes of the string list at <env>, including null terminator.
+    0 = not terminated within maxSize */
+static u16 getEnvironmentListSize(const char _far *env, u16 maxSize) {
+    u16 pos = 0;
+
+    L866_NULLCHECK(env);
+
+    while (pos < maxSize) {
+        /* An empty string here is the end-of-list marker */
+        if (env[pos] == 0x00) return (u16) (pos + 1);
+        /* Otherwise skip this string and its terminator */
+        while (pos < maxSize && env[pos] != 0x00) pos++;
+        pos++;
+    }
+
+    DBG("Unterminated environment list!\n");
+    return 0;
+}
+
+/*  DOS stores a word (1) + the program's path string AFTER the EOL marker.
+    Returns its size so we can preserve it, 0 on error (or not present) */
+static u16 getEnvironmentTailSize(const char _far *tail, u16 maxSize) {
+    u16 pos = 2;
+
+    if (maxSize < 3) return 0;
+    if (*(const u16 _far *) tail != 1) return 0;
+
+    while (pos < maxSize && tail[pos] != 0x00) pos++;
+
+    if (pos >= maxSize) return 0; /* Unterminated, don't touch it */
+
+    return (u16) (pos + 1);
+}
+
+/*  Delete every entry for <key> from the environment string list <env>.
+    Everything afterwards is shifted accordingly */
+void deleteFromEnvironment(char _far *env, const char *toDelete, u16 blockSize) {
+    u16 pos = 0;
+
+    L866_NULLCHECK(env);
+    L866_NULLCHECK(toDelete);
+
+    while (pos < blockSize && env[pos] != 0x00) {
+        u16 entryStart = pos;
+
+        DBG("Delete check '%Fs'\n", env + pos);
+
+        while (pos < blockSize && env[pos] != 0x00) pos++;
+        if (pos >= blockSize) {
+            DBG("Unterminated environment list, stopping\n");
+            return;
+        }
+        pos++; /* Past the string terminator */
+
+        if (envEntryMatchesKey(env + entryStart, toDelete)) {
+            DBG("Found variable '%s': '%Fs'\n", toDelete, env + entryStart);
+            /* Move the rest up */
+            _fmemmove(env + entryStart, env + pos, blockSize - pos);
+            /* Whatever moved down here hasn't been checked yet */
+            pos = entryStart;
+        }
+    }
+}
+
+/*  Append "<key>=<value>" to the environment string list <env>.
+    EOL marker and tail remain intact, <key> must not already be present. */
+static bool appendToEnvironment(char _far *env, u16 blockSize, const char *key, const char *value) {
+    u16 listSize = getEnvironmentListSize(env, blockSize);
+    u16 tailSize;
+    u16 neededSize;
+    char _far *insertAt;
+
+    if (listSize == 0) return false;
+
+    tailSize   = getEnvironmentTailSize(env + listSize, blockSize - listSize);
+    /* "<key>" "=" "<value>" + null terminator (EOL marker is already part of listSize) */
+    neededSize = (u16) (strlen(key) + 1 + strlen(value) + 1);
+
+    if ((u32) listSize + (u32) neededSize + (u32) tailSize > (u32) blockSize) {
+        DBG("Out of environment space (block %u, list %u, tail %u, need %u)\n",
+            blockSize, listSize, tailSize, neededSize);
+        return false;
+    }
+
+    /* Our new entry goes where the EOL marker is right now */
+    insertAt = env + listSize - 1;
+
+    /* Shift the marker and the program path up to make room */
+    _fmemmove(insertAt + neededSize, insertAt, 1 + tailSize);
+
+    _fstrcpy(insertAt, (const char _far *) key);
+    _fstrcat(insertAt, (const char _far *) "=");
+    _fstrcat(insertAt, (const char _far *) value);
+
+    DBG("New env data @ %lp: '%Fs'\n", insertAt, insertAt);
+
+    return true;
+}
+
+/*  Write "<key>=<value>" into the single environment block at <envSegment>. */
+static bool putenvIntoSegment(u16 envSegment, const char *key, const char *value) {
+    char _far *env = MK_FP(envSegment, 0);
+    u16 blockSize;
+
+    L866_NULLCHECK(key);
+    L866_NULLCHECK(value);
+
+    DBG("putenv: Segment %04x, %s=%s\n", envSegment, key, value);
+
+    blockSize = getEnvironmentSize(envSegment);
+
+    if (blockSize == 0) {
+        DBG("Segment %x has no usable MCB, refusing to touch it\n", envSegment);
+        return false;
+    }
+
+    /* First, delete any existing version of this variable, then add the new one */
+    deleteFromEnvironment(env, key, blockSize);
+
+    return appendToEnvironment(env, blockSize, key, value);
+}
+
+
+bool sys_putenvRecursive(const char *key, const char *value) {
+/*  Maximum depth of (sub)environments to check. 
+    If we exceed this, something is likely broken... */
+#define MAX_ENV_LEVELS 16
+
+    u16  segments[MAX_ENV_LEVELS];
+    u16  count      = 0;
+    u16  psp        = getParentPsp(sys_getPsp());
+    bool reachedTop = false;
+    bool success    = true;
+    u16  level;
+    u16  i;
+
+    /*  Not recursing here, because of stack limits + limiting damage if we run off the rails somehow... */
+    for (level = 0; level < MAX_ENV_LEVELS; level++) {
+        u16 segment = *(u16 _far *)(MK_FP(psp, 0x2C));
+        u16 parent  = getParentPsp(psp);
+
+        DBG("Psp %04x Parent %04x Segment %04x\n", psp, parent, segment);
+
+        /* Zero segment = process shares its parent's environment (-> skip it) */
+        if (segment != 0) {
+            /* Check if segment is known */
+            for (i = 0; i < count; i++) {
+                if (segments[i] == segment) {
+                    break; /* Known segment */
+                }
+            }
+
+            /* If the segment is not known yet, add it */
+            if (i == count) segments[count++] = segment;
+        }
+
+        /* A process that parents itself (or nothing) is the top of the chain */
+        if (parent == psp || parent == 0) {
+            reachedTop = true;
+            break;
+        }
+
+        psp = parent;
+    }
+
+    /* After all of this we should be at the master env, if not, get out */
+    if (!reachedTop) {
+        DBG("PSP chain is too deep or loops, giving up\n");
+        return false;
+    }
+
+    /* Update all found environments */
+    for (i = 0; i < count; i++) {
+        success &= putenvIntoSegment(segments[i], key, value);
+    }
+
+    return success && count > 0;
 }
